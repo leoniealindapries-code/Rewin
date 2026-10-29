@@ -80,6 +80,10 @@ main{padding:14px 16px calc(84px + env(safe-area-inset-bottom));max-width:620px;
 /* spel */
 #spelVak{position:relative;border-radius:18px;overflow:hidden;box-shadow:var(--schaduw);background:#bfe3ff;touch-action:none}
 #spel{display:block;width:100%;height:min(64vh,520px)}
+.keuze{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin:0 -2px;scrollbar-width:none}
+.keuze::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--lijn);background:var(--kaart);border-radius:999px;padding:7px 12px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.chip.actief{background:var(--blauw);border-color:var(--blauw);color:#fff}
 .spelinfo{display:flex;justify-content:space-between;margin:10px 2px;font-weight:600}
 /* instellingen */
 .veld{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--lijn)}
@@ -174,9 +178,16 @@ nav button.actief{color:var(--blauw);font-weight:600}
 
   <!-- ================= SPEL ================= -->
   <section class="tab" id="tab-spel">
+    <div class="keuze" id="spelKeuze">
+      <button class="chip" data-spel="auto">✨ Automatisch</button>
+      <button class="chip" data-spel="lift">👍 Liften · oef 1</button>
+      <button class="chip" data-spel="ramen">🪟 Ramen · oef 2</button>
+      <button class="chip" data-spel="molen">🌬️ Molen · oef 3</button>
+      <button class="chip" data-spel="ballon">🎈 Ballon · alle</button>
+    </div>
     <div class="spelinfo"><span id="spelScore">🌸 0</span><span id="spelBeste">Record: 0</span></div>
     <div id="spelVak"><canvas id="spel"></canvas></div>
-    <p class="zacht klein" style="margin-top:10px">Til je arm op (of draai je pols) om de ballon naar de ster te laten vliegen. Kom je rustig terug met een rechte pols, dan groeit er een bloem. Een gouden bloem betekent: de hele herhaling netjes!</p>
+    <p class="zacht klein" id="spelUitleg" style="margin-top:10px"></p>
   </section>
 
   <!-- ================= INSTELLINGEN ================= -->
@@ -273,7 +284,7 @@ function verwerk(regel) {
       st.naam = p[1]; st.oef = +p[3] || st.oef; st.opstartId = p[4] || st.opstartId;
       break;
     case 'T':
-      st.toestand = +p[1]; st.oef = +p[2] || st.oef;
+      { const vorige = st.oef; st.toestand = +p[1]; st.oef = +p[2] || st.oef; if (st.oef !== vorige) { spel.ramen.laag = null; spelScore(); } }
       if (st.toestand === 2 || st.toestand === 0) { st.herhLive = 0; spelNieuweRonde(); }
       if (st.toestand === 5) spelKlaar();
       break;
@@ -754,33 +765,131 @@ function tekenLive() {
 }
 
 // =====================================================================================
-//  SPEL: ballon naar de ster, bloemen in de tuin
+//  SPELLEN
+//   ballon: alle oefeningen   · lift: oefening 1 (duim omhoog)
+//   ramen:  oefening 2 (palm naar beneden, trekker)   · molen: oefening 3 (hand draaien)
 // =====================================================================================
-const spel = { hoogte: 0, ster: true, sterPop: 0, bloemen: [], herhAfw: false, wolken: [], klaar: false, schud: 0, tekst: '', tekstTijd: 0 };
-for (let i = 0; i < 5; i++) spel.wolken.push({ x: Math.random(), y: .08 + Math.random() * .45, s: .6 + Math.random() * .7, v: .006 + Math.random() * .01 });
+const SPELLEN = {
+  ballon: { oef: 0, uitleg: 'Til je arm op (of draai je pols) om de ballon naar de ster te laten vliegen. Kom je rustig terug met een rechte pols, dan groeit er een bloem. Een gouden bloem betekent: de hele herhaling netjes!' },
+  lift:   { oef: 1, uitleg: 'Je staat langs de weg. Til je arm op met je duim omhoog: dan stopt er een auto. Laat je arm rustig zakken, dan stap je in en rijd je naar de volgende stad. Bleef je pols recht, dan is het een nette rit ⭐.' },
+  ramen:  { oef: 2, uitleg: 'Je hand is de trekker. Til je arm op met je handpalm naar beneden om een baan van het beslagen raam droog te trekken. Na 10 keer is het raam schoon en zie je het uitzicht. Met een kromme pols blijven er strepen achter.' },
+  molen:  { oef: 3, uitleg: 'Draai je hand van duim omhoog naar plat op tafel en weer terug. Zo laat je de molen draaien. Elke herhaling maalt een zak meel; met een rechte pols wordt het een gouden zak.' }
+};
+const AUTO_SPEL = { 1: 'lift', 2: 'ramen', 3: 'molen' };
+const STEDEN = ['Delft', 'Leiden', 'Gouda', 'Utrecht', 'Haarlem', 'Zandvoort', 'Amsterdam', 'Alkmaar', 'Den Helder', 'Texel'];
+if (typeof inst.beste !== 'object' || inst.beste === null) inst.beste = { ballon: +inst.beste || 0 };
+if (!inst.spel) inst.spel = 'auto';
 
-function spelNieuweRonde() { spel.bloemen = []; spel.ster = true; spel.klaar = false; spel.herhAfw = false; spelScore(); }
-function spelBloem() {
-  spel.bloemen.push({ goud: !spel.herhAfw, groei: 0, x: .08 + .84 * ((spel.bloemen.length % 10) / 9) });
-  spel.herhAfw = false; spel.ster = true;
-  spelBericht(spel.bloemen[spel.bloemen.length - 1].goud ? 'Gouden bloem! ✨' : 'Bloem! 🌸');
+function actiefSpel() { return inst.spel === 'auto' ? (AUTO_SPEL[st.oef] || 'ballon') : inst.spel; }
+
+const spel = {
+  hoogte: 0, herhAfw: false, klaar: false, schud: 0, tekst: '', tekstTijd: 0,
+  resultaten: [],                 // per herhaling: true = netjes (pols recht gebleven)
+  groei: [],                      // ballon: groei van de bloemen
+  wolken: [],
+  ster: true, sterPop: 0,
+  lift: { fase: 'wacht', autoX: -200, autoV: 0, kleur: '#e63946', stad: 0, km: 0, deco: -300, decoKleur: '#3d7bd9' },
+  ramen: { laag: null, uitzicht: null, w: 0, h: 0 },
+  molen: { hoek: 0, v: 0, vorigF: 0, boven: false }
+};
+for (let i = 0; i < 5; i++) spel.wolken.push({ x: Math.random(), y: .08 + Math.random() * .45, s: .6 + Math.random() * .7, v: .006 + Math.random() * .01 });
+const AUTOKLEUREN = ['#e63946', '#2a9d8f', '#f4a261', '#7b5ea7', '#3d7bd9', '#ffb703'];
+
+function spelNieuweRonde() {
+  spel.resultaten = []; spel.groei = []; spel.ster = true; spel.klaar = false; spel.herhAfw = false;
+  spel.lift.fase = 'wacht';
+  spel.ramen.laag = null;          // nieuw beslagen raam
+  spel.molen.boven = false;
   spelScore();
 }
+
+// Wordt aangeroepen bij elke herhaling (bericht H van Rewin)
+function spelBloem() {
+  const netjes = !spel.herhAfw;
+  spel.resultaten.push(netjes); spel.groei.push(0);
+  spel.herhAfw = false; spel.ster = true; spel.molen.boven = false;
+  const n = spel.resultaten.length;
+  switch (actiefSpel()) {
+    case 'ballon': spelBericht(netjes ? 'Gouden bloem! ✨' : 'Bloem! 🌸'); break;
+    case 'lift': {
+      const L = spel.lift;
+      if (L.fase === 'wacht') { L.autoX = liftStopX(); L.kleur = AUTOKLEUREN[n % AUTOKLEUREN.length]; }
+      L.fase = 'weg'; L.autoV = 40;
+      L.km += Math.round(6 + Math.random() * 22);
+      spelBericht(`Lift naar ${STEDEN[L.stad % STEDEN.length]}!${netjes ? ' ⭐ Nette rit' : ''}`);
+      break;
+    }
+    case 'ramen':
+      ramenKolomKlaar(n - 1, netjes);
+      spelBericht(n >= 10 ? 'Wat een uitzicht! 🌅' : netjes ? 'Mooi droog! ✨' : 'Droog, maar met strepen. Houd je pols recht.');
+      break;
+    case 'molen':
+      spel.molen.v += 260;
+      spelBericht(netjes ? 'Gouden zak meel! ✨' : 'Zak meel! 🌾');
+      break;
+  }
+  spelScore();
+}
+
 function spelKlaar() {
   spel.klaar = true;
-  const goud = spel.bloemen.filter(b => b.goud).length;
-  if (goud > inst.beste) { inst.beste = goud; bewaarInst(); }
+  const sp = actiefSpel(), goud = spel.resultaten.filter(Boolean).length;
+  if (goud > (inst.beste[sp] || 0)) { inst.beste[sp] = goud; bewaarInst(); }
   spelScore();
 }
 function spelBericht(t) { spel.tekst = t; spel.tekstTijd = performance.now(); }
+
 function spelScore() {
-  const goud = spel.bloemen.filter(b => b.goud).length;
-  $('spelScore').textContent = `🌸 ${spel.bloemen.length}   ✨ ${goud} goud`;
-  $('spelBeste').textContent = `Record: ${inst.beste} goud`;
+  const sp = actiefSpel(), n = spel.resultaten.length, goud = spel.resultaten.filter(Boolean).length;
+  const tekst = {
+    ballon: `🌸 ${n}   ✨ ${goud} goud`,
+    lift: `🚗 ${n} ritjes · ${spel.lift.km} km · ⭐ ${goud}`,
+    ramen: `🪟 ${Math.min(n, 10)}/10 banen droog · ✨ ${goud}`,
+    molen: `🌾 ${n} zakken meel · ✨ ${goud} goud`
+  }[sp];
+  $('spelScore').textContent = tekst;
+  $('spelBeste').textContent = `Record: ${inst.beste[sp] || 0}${sp === 'lift' ? ' ⭐' : ' ✨'}`;
+  $('spelUitleg').textContent = SPELLEN[sp].uitleg;
+  document.querySelectorAll('#spelKeuze .chip').forEach(c => c.classList.toggle('actief', c.dataset.spel === inst.spel));
 }
 
+// ---Gedeelde tekenhulpjes -------------------------------------------------------------
 const doek = $('spel'), cx = doek.getContext('2d');
 let vorigFrame = performance.now(), laatsteLiveTeken = 0;
+
+function tekenLucht(W, H, afw, boven = '#7cc4ff', onder = '#dff2ff') {
+  const g = cx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, afw ? '#8ea3b8' : boven); g.addColorStop(1, afw ? '#c9d3dd' : onder);
+  cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+}
+function tekenZon(x, y, afw) { cx.fillStyle = afw ? 'rgba(255,230,140,.35)' : '#ffe27a'; cx.beginPath(); cx.arc(x, y, 26, 0, 7); cx.fill(); }
+function tekenWolken(W, H, dt, afw, hoogte = 1) {
+  for (const w of spel.wolken) {
+    w.x += w.v * dt * (afw ? 4 : 1); if (w.x > 1.2) w.x = -.2;
+    cx.fillStyle = afw ? 'rgba(110,120,135,.85)' : 'rgba(255,255,255,.9)';
+    const x = w.x * W, y = w.y * H * hoogte, s = 22 * w.s;
+    cx.beginPath(); cx.arc(x, y, s, 0, 7); cx.arc(x + s, y + 4, s * .8, 0, 7); cx.arc(x - s, y + 5, s * .7, 0, 7); cx.fill();
+  }
+}
+function berichtBalk(W, t, kleur, y = 96) {
+  cx.font = '600 15px system-ui,sans-serif';
+  const b = Math.min(W - 24, cx.measureText(t).width + 28);
+  cx.fillStyle = 'rgba(255,255,255,.92)'; rondeRect(W / 2 - b / 2, y, b, 34, 12); cx.fill();
+  cx.fillStyle = kleur; cx.textAlign = 'center'; cx.fillText(t, W / 2, y + 22, W - 40);
+}
+function infoVak(W, H, regels) {
+  cx.fillStyle = 'rgba(255,255,255,.92)'; rondeRect(W / 2 - 155, H / 2 - 56, 310, 34 + regels.length * 26, 16); cx.fill();
+  cx.fillStyle = '#16233a'; cx.font = '600 16px system-ui,sans-serif'; cx.textAlign = 'center';
+  regels.forEach((t, i) => cx.fillText(t, W / 2, H / 2 - 22 + i * 26, 290));
+}
+function rondeRect(x, y, w, h, r) { cx.beginPath(); cx.roundRect ? cx.roundRect(x, y, w, h, r) : cx.rect(x, y, w, h); }
+function tekenSter(x, y, r, kleur) {
+  cx.fillStyle = kleur; cx.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .45 : r; cx.lineTo(x + rr * Math.cos(a), y + rr * Math.sin(a)); }
+  cx.closePath(); cx.fill();
+}
+
+// ---Hoofdlus ---------------------------------------------------------------------------
 function spelFrame(nu) {
   const dt = Math.min(.05, (nu - vorigFrame) / 1000); vorigFrame = nu;
   requestAnimationFrame(spelFrame);
@@ -793,83 +902,35 @@ function spelFrame(nu) {
   cx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const l = st.live && performance.now() - st.liveTijd < 3000 ? st.live : null;
-  const bezig = st.toestand === 3 && l;
-  const doelF = l ? Math.min(1.08, Math.abs(l.hoek) / l.doel) : 0;
+  const sp = actiefSpel();
+  const nodig = SPELLEN[sp].oef;
+  const verbonden = st.verbonden || st.demoActief;
+  const verkeerd = nodig && verbonden && st.oef && st.oef !== nodig;
+  const bezig = st.toestand === 3 && l && !verkeerd;
+  const doelF = bezig ? Math.min(1.08, Math.abs(l.hoek) / l.doel) : 0;
   spel.hoogte += (doelF - spel.hoogte) * Math.min(1, dt * 8);    // soepel meebewegen
-  const afw = l && l.afw;
+  const f = spel.hoogte;
+  const afw = !!(bezig && l.afw);
   spel.schud = afw ? Math.min(1, spel.schud + dt * 4) : Math.max(0, spel.schud - dt * 3);
+  spel.groei = spel.groei.map(g => Math.min(1, g + dt * 1.6));
 
-  // lucht
-  const g = cx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, afw ? '#8ea3b8' : '#7cc4ff'); g.addColorStop(1, afw ? '#c9d3dd' : '#dff2ff');
-  cx.fillStyle = g; cx.fillRect(0, 0, W, H);
-  // zon
-  cx.fillStyle = afw ? 'rgba(255,230,140,.35)' : '#ffe27a';
-  cx.beginPath(); cx.arc(W * .86, H * .12, 26, 0, 7); cx.fill();
-  // wolken
-  for (const w of spel.wolken) {
-    w.x += w.v * dt * (afw ? 4 : 1); if (w.x > 1.2) w.x = -.2;
-    cx.fillStyle = afw ? 'rgba(110,120,135,.85)' : 'rgba(255,255,255,.9)';
-    const x = w.x * W, y = w.y * H, s = 22 * w.s;
-    cx.beginPath(); cx.arc(x, y, s, 0, 7); cx.arc(x + s, y + 4, s * .8, 0, 7); cx.arc(x - s, y + 5, s * .7, 0, 7); cx.fill();
-  }
-  // grond
-  const grond = H - 70;
-  cx.fillStyle = '#7fcf6a'; cx.fillRect(0, grond, W, H - grond);
-  cx.fillStyle = '#6bbb57'; for (let x = 0; x < W; x += 18) { cx.beginPath(); cx.arc(x, grond, 12, Math.PI, 0); cx.fill(); }
+  if (sp === 'lift') tekenLift(W, H, nu, dt, f, afw, bezig);
+  else if (sp === 'ramen') tekenRamen(W, H, nu, dt, f, afw, bezig);
+  else if (sp === 'molen') tekenMolen(W, H, nu, dt, f, afw, bezig, l);
+  else tekenBallon(W, H, nu, dt, f, afw, bezig);
 
-  // bloemen
-  for (const b of spel.bloemen) {
-    b.groei = Math.min(1, b.groei + dt * 1.6);
-    const x = b.x * W, h = 34 * b.groei;
-    cx.strokeStyle = '#2f8a3c'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(x, grond + 26); cx.lineTo(x, grond + 26 - h); cx.stroke();
-    const kleur = b.goud ? '#ffc928' : '#ff8fb3';
-    cx.fillStyle = kleur;
-    for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; cx.beginPath(); cx.arc(x + 7 * b.groei * Math.cos(a), grond + 26 - h + 7 * b.groei * Math.sin(a), 5 * b.groei, 0, 7); cx.fill(); }
-    cx.fillStyle = b.goud ? '#ff8a00' : '#fff3a6'; cx.beginPath(); cx.arc(x, grond + 26 - h, 4 * b.groei, 0, 7); cx.fill();
-  }
-
-  // ster bovenaan
-  const boven = 58, onder = grond - 50;
-  const sterY = boven;
-  if (bezig && spel.ster && spel.hoogte >= .875) { spel.ster = false; spel.sterPop = 1; spelBericht('Ster! Nu rustig terug naar beneden.'); }
-  if (spel.ster && !spel.klaar) {
-    const p = 1 + .08 * Math.sin(nu / 200);
-    tekenSter(W / 2, sterY, 18 * p, '#ffd23f');
-  } else if (spel.sterPop > 0) {
-    spel.sterPop -= dt * 1.5;
-    cx.globalAlpha = Math.max(0, spel.sterPop);
-    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, r = 20 + (1 - spel.sterPop) * 40; tekenSter(W / 2 + r * Math.cos(a), sterY + r * Math.sin(a), 6, '#ffd23f'); }
-    cx.globalAlpha = 1;
-  }
-
-  // ballon
-  const by = onder - (onder - boven) * Math.min(1, spel.hoogte);
-  const bx = W / 2 + spel.schud * 7 * Math.sin(nu / 45);
-  cx.strokeStyle = 'rgba(60,60,60,.6)'; cx.lineWidth = 1.5;
-  cx.beginPath(); cx.moveTo(bx, by + 30); cx.quadraticCurveTo(bx - 8, by + 50, bx, by + 70); cx.stroke();
-  cx.fillStyle = afw ? '#8a96a8' : '#ff5a5f';
-  cx.beginPath(); cx.ellipse(bx, by, 24, 30, 0, 0, 7); cx.fill();
-  cx.beginPath(); cx.moveTo(bx - 5, by + 30); cx.lineTo(bx + 5, by + 30); cx.lineTo(bx, by + 24); cx.fill();
-  cx.fillStyle = 'rgba(255,255,255,.45)'; cx.beginPath(); cx.ellipse(bx - 8, by - 10, 6, 10, -.4, 0, 7); cx.fill();
-  // gezichtje
-  cx.fillStyle = '#3a1a1a';
-  cx.beginPath(); cx.arc(bx - 7, by - 2, 2.4, 0, 7); cx.arc(bx + 7, by - 2, 2.4, 0, 7); cx.fill();
-  cx.strokeStyle = '#3a1a1a'; cx.lineWidth = 2; cx.beginPath();
-  if (afw) cx.arc(bx, by + 12, 6, 1.15 * Math.PI, 1.85 * Math.PI); else cx.arc(bx, by + 5, 6, .15 * Math.PI, .85 * Math.PI);
-  cx.stroke();
-
-  // teksten
+  // teksten bovenop
   cx.textAlign = 'center';
-  if (!bezig) {
-    cx.fillStyle = 'rgba(255,255,255,.88)'; rondeRect(W / 2 - 150, H / 2 - 52, 300, 92, 16); cx.fill();
-    cx.fillStyle = '#16233a'; cx.font = '600 17px system-ui,sans-serif';
-    const verbonden = st.verbonden || st.demoActief;
-    const regels = spel.klaar ? ['Klaar! 🎉', `${spel.bloemen.length} bloemen, ${spel.bloemen.filter(b => b.goud).length} goud`]
+  const n = spel.resultaten.length, goud = spel.resultaten.filter(Boolean).length;
+  if (verkeerd) {
+    cx.fillStyle = 'rgba(22,35,58,.35)'; cx.fillRect(0, 0, W, H);
+    infoVak(W, H, [`Dit spel hoort bij oefening ${nodig}`, `Druk op de oefeningknop van je`, `Rewin tot lampje ${nodig} brandt.`]);
+  } else if (!bezig) {
+    const regels = spel.klaar ? ['Klaar! 🎉', { ballon: `${n} bloemen, ${goud} goud`, lift: `${n} ritjes, ${spel.lift.km} km`, ramen: 'Het raam is schoon!', molen: `${n} zakken meel, ${goud} goud` }[sp]]
       : !verbonden ? ['Verbind je Rewin', '(knop rechtsboven)']
       : st.toestand === 2 ? ['Druk op start', 'om te beginnen'] : ['Leg je arm recht op tafel', 'en druk op start'];
-    regels.forEach((t, i) => cx.fillText(t, W / 2, H / 2 - 16 + i * 26));
-  } else if (l && !l.uit) {
+    infoVak(W, H, regels);
+  } else if (!l.uit) {
     berichtBalk(W, l.oef === 3 ? 'Draai je hand één keer rustig om' : 'Til je arm één keer rustig op', '#16233a');
   } else if (afw) {
     berichtBalk(W, tipVoor(l).tekst.replace(/^[^A-Za-zÀ-ÿ]+/, '').split('.')[0] + '!', '#b3261e');
@@ -877,17 +938,306 @@ function spelFrame(nu) {
     berichtBalk(W, spel.tekst, '#16233a');
   }
 }
-function berichtBalk(W, t, kleur) {
-  cx.font = '600 15px system-ui,sans-serif';
-  const b = Math.min(W - 24, cx.measureText(t).width + 28);
-  cx.fillStyle = 'rgba(255,255,255,.9)'; rondeRect(W / 2 - b / 2, 96, b, 34, 12); cx.fill();
-  cx.fillStyle = kleur; cx.textAlign = 'center'; cx.fillText(t, W / 2, 118, W - 40);
+
+// =====================================================================================
+//  BALLON (alle oefeningen)
+// =====================================================================================
+function tekenBallon(W, H, nu, dt, f, afw, bezig) {
+  tekenLucht(W, H, afw); tekenZon(W * .86, H * .12, afw); tekenWolken(W, H, dt, afw);
+  const grond = H - 70;
+  cx.fillStyle = '#7fcf6a'; cx.fillRect(0, grond, W, H - grond);
+  cx.fillStyle = '#6bbb57'; for (let x = 0; x < W; x += 18) { cx.beginPath(); cx.arc(x, grond, 12, Math.PI, 0); cx.fill(); }
+
+  spel.resultaten.forEach((goud, i) => {
+    const g = spel.groei[i] ?? 1, x = (.08 + .84 * ((i % 10) / 9)) * W, h = 34 * g;
+    cx.strokeStyle = '#2f8a3c'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(x, grond + 26); cx.lineTo(x, grond + 26 - h); cx.stroke();
+    cx.fillStyle = goud ? '#ffc928' : '#ff8fb3';
+    for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; cx.beginPath(); cx.arc(x + 7 * g * Math.cos(a), grond + 26 - h + 7 * g * Math.sin(a), 5 * g, 0, 7); cx.fill(); }
+    cx.fillStyle = goud ? '#ff8a00' : '#fff3a6'; cx.beginPath(); cx.arc(x, grond + 26 - h, 4 * g, 0, 7); cx.fill();
+  });
+
+  const boven = 58, onder = grond - 50, sterY = boven;
+  if (bezig && spel.ster && f >= .875) { spel.ster = false; spel.sterPop = 1; spelBericht('Ster! Nu rustig terug naar beneden.'); }
+  if (spel.ster && !spel.klaar) tekenSter(W / 2, sterY, 18 * (1 + .08 * Math.sin(nu / 200)), '#ffd23f');
+  else if (spel.sterPop > 0) {
+    spel.sterPop -= dt * 1.5;
+    cx.globalAlpha = Math.max(0, spel.sterPop);
+    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, r = 20 + (1 - spel.sterPop) * 40; tekenSter(W / 2 + r * Math.cos(a), sterY + r * Math.sin(a), 6, '#ffd23f'); }
+    cx.globalAlpha = 1;
+  }
+
+  const by = onder - (onder - boven) * Math.min(1, f);
+  const bx = W / 2 + spel.schud * 7 * Math.sin(nu / 45);
+  cx.strokeStyle = 'rgba(60,60,60,.6)'; cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(bx, by + 30); cx.quadraticCurveTo(bx - 8, by + 50, bx, by + 70); cx.stroke();
+  cx.fillStyle = afw ? '#8a96a8' : '#ff5a5f';
+  cx.beginPath(); cx.ellipse(bx, by, 24, 30, 0, 0, 7); cx.fill();
+  cx.beginPath(); cx.moveTo(bx - 5, by + 30); cx.lineTo(bx + 5, by + 30); cx.lineTo(bx, by + 24); cx.fill();
+  cx.fillStyle = 'rgba(255,255,255,.45)'; cx.beginPath(); cx.ellipse(bx - 8, by - 10, 6, 10, -.4, 0, 7); cx.fill();
+  gezichtje(bx, by, afw);
 }
-function rondeRect(x, y, w, h, r) { cx.beginPath(); cx.roundRect ? cx.roundRect(x, y, w, h, r) : cx.rect(x, y, w, h); }
-function tekenSter(x, y, r, kleur) {
-  cx.fillStyle = kleur; cx.beginPath();
-  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .45 : r; cx.lineTo(x + rr * Math.cos(a), y + rr * Math.sin(a)); }
-  cx.closePath(); cx.fill();
+function gezichtje(x, y, verdrietig, r = 1) {
+  cx.fillStyle = '#3a1a1a';
+  cx.beginPath(); cx.arc(x - 7 * r, y - 2 * r, 2.4 * r, 0, 7); cx.arc(x + 7 * r, y - 2 * r, 2.4 * r, 0, 7); cx.fill();
+  cx.strokeStyle = '#3a1a1a'; cx.lineWidth = 2 * r; cx.beginPath();
+  if (verdrietig) cx.arc(x, y + 12 * r, 6 * r, 1.15 * Math.PI, 1.85 * Math.PI); else cx.arc(x, y + 5 * r, 6 * r, .15 * Math.PI, .85 * Math.PI);
+  cx.stroke();
+}
+
+// =====================================================================================
+//  LIFTEN (oefening 1: onderarm optillen met de duim omhoog)
+// =====================================================================================
+const liftStopX = () => doek.clientWidth * .62 - 150;
+
+function tekenAuto(x, y, kleur, metPersoon) {
+  // x = linkerkant, y = onderkant van de wielen
+  cx.fillStyle = kleur;
+  rondeRect(x, y - 44, 130, 30, 10); cx.fill();
+  rondeRect(x + 28, y - 66, 70, 28, 10); cx.fill();
+  cx.fillStyle = '#cfe8ff';
+  rondeRect(x + 34, y - 61, 27, 19, 4); cx.fill();
+  rondeRect(x + 65, y - 61, 27, 19, 4); cx.fill();
+  if (metPersoon) { cx.fillStyle = '#e9b48c'; cx.beginPath(); cx.arc(x + 80, y - 50, 7, 0, 7); cx.fill(); }
+  cx.fillStyle = '#fff6b0'; cx.fillRect(x + 122, y - 38, 8, 7);
+  cx.fillStyle = '#222';
+  for (const wx of [x + 30, x + 100]) { cx.beginPath(); cx.arc(wx, y - 11, 11, 0, 7); cx.fill(); cx.fillStyle = '#999'; cx.beginPath(); cx.arc(wx, y - 11, 4, 0, 7); cx.fill(); cx.fillStyle = '#222'; }
+}
+
+function tekenLift(W, H, nu, dt, f, afw, bezig) {
+  const L = spel.lift;
+  tekenLucht(W, H, afw, ['#7cc4ff', '#ffb27a', '#8fb8ff', '#79d0e8'][L.stad % 4]);
+  tekenZon(W * .15, H * .12, afw);
+  tekenWolken(W, H, dt, afw, .7);
+  const weg = H * .58, wegH = 64;
+  // heuvels (andere kleur per stad)
+  const heuvel = [['#9bd48f', '#7cc26f'], ['#c9d98a', '#a9c46a'], ['#8fcfb0', '#6db892'], ['#b8d68f', '#93c06a']][L.stad % 4];
+  cx.fillStyle = heuvel[0]; cx.beginPath(); cx.ellipse(W * .25, weg + 10, W * .45, 90, 0, Math.PI, 0); cx.fill();
+  cx.fillStyle = heuvel[1]; cx.beginPath(); cx.ellipse(W * .85, weg + 10, W * .5, 70, 0, Math.PI, 0); cx.fill();
+  // weg
+  cx.fillStyle = '#5b6573'; cx.fillRect(0, weg, W, wegH);
+  cx.strokeStyle = '#f5f5f5'; cx.lineWidth = 3; cx.setLineDash([22, 18]);
+  cx.beginPath(); cx.moveTo(0, weg + wegH / 2); cx.lineTo(W, weg + wegH / 2); cx.stroke(); cx.setLineDash([]);
+  cx.fillStyle = '#7fcf6a'; cx.fillRect(0, weg + wegH, W, H - weg - wegH);
+
+  // bord met de volgende stad
+  const px = W * .62, voet = Math.min(H - 14, weg + wegH + 96);
+  cx.fillStyle = '#7a5a3a'; cx.fillRect(px + 74, voet - 58, 5, 58);
+  cx.fillStyle = '#1f6f43'; rondeRect(px + 40, voet - 84, 92, 30, 6); cx.fill();
+  cx.fillStyle = '#fff'; cx.font = '700 13px system-ui,sans-serif'; cx.textAlign = 'center';
+  cx.fillText('➜ ' + STEDEN[L.stad % STEDEN.length], px + 86, voet - 64, 84);
+
+  // langsrijdende auto's (versiering, stoppen niet)
+  const wielY = weg + wegH - 8;
+  if (L.fase === 'wacht') {
+    L.deco += 240 * dt;
+    if (L.deco > W + 160) { L.deco = -300 - Math.random() * 500; L.decoKleur = AUTOKLEUREN[Math.floor(Math.random() * AUTOKLEUREN.length)]; }
+    tekenAuto(L.deco, weg + 26, L.decoKleur, true);
+    if (bezig && f >= .875) {
+      L.fase = 'komt'; L.autoX = -150; L.kleur = AUTOKLEUREN[(spel.resultaten.length + 1) % AUTOKLEUREN.length];
+      spelBericht('Er stopt een auto! Laat je arm nu rustig zakken.');
+    }
+  }
+  const stopX = liftStopX();
+  if (L.fase === 'komt') { L.autoX += Math.max(50, (stopX - L.autoX) * 2.4) * dt; if (L.autoX >= stopX - 1) { L.autoX = stopX; L.fase = 'staat'; } }
+  if (L.fase === 'weg') { L.autoV += 320 * dt; L.autoX += L.autoV * dt; if (L.autoX > W + 170) { L.fase = 'wacht'; L.stad++; L.deco = -400; } }
+  if (L.fase !== 'wacht') {
+    tekenAuto(L.autoX, wielY, L.kleur, L.fase === 'weg');
+    if (afw && L.fase !== 'weg') {
+      cx.fillStyle = '#16233a'; cx.font = '700 15px system-ui,sans-serif'; cx.textAlign = 'left';
+      cx.fillText('toet toet! 📯', L.autoX + 90, wielY - 78);
+    }
+  }
+
+  // de lifter (niet zichtbaar als hij in de auto zit)
+  if (L.fase !== 'weg') {
+    const sx = px, sy = voet - 62, schud = spel.schud * 3 * Math.sin(nu / 40);
+    cx.strokeStyle = '#2c3e66'; cx.lineWidth = 9; cx.lineCap = 'round';
+    cx.beginPath(); cx.moveTo(sx, sy + 30); cx.lineTo(sx - 10, voet); cx.moveTo(sx, sy + 30); cx.lineTo(sx + 10, voet); cx.stroke();
+    cx.strokeStyle = '#f2994a'; cx.lineWidth = 16;
+    cx.beginPath(); cx.moveTo(sx, sy); cx.lineTo(sx, sy + 30); cx.stroke();
+    cx.fillStyle = '#e9b48c'; cx.beginPath(); cx.arc(sx, sy - 16, 12, 0, 7); cx.fill();
+    cx.fillStyle = '#5a3825'; cx.beginPath(); cx.arc(sx, sy - 20, 12, Math.PI, 0); cx.fill();
+    gezichtje(sx - 2, sy - 15, afw, .55);
+    // arm: hangend (f=0) -> naar voren -> schuin omhoog (f=1)
+    const a = rad(-90 - Math.min(1.05, f) * 120);
+    const hx = sx + 44 * Math.cos(a) + schud, hy = sy + 4 - 44 * Math.sin(a);
+    cx.strokeStyle = '#f2994a'; cx.lineWidth = 9;
+    cx.beginPath(); cx.moveTo(sx, sy + 4); cx.lineTo(hx, hy); cx.stroke();
+    cx.fillStyle = afw ? '#d6453d' : '#e9b48c';
+    cx.beginPath(); cx.arc(hx, hy, 7, 0, 7); cx.fill();
+    cx.strokeStyle = afw ? '#d6453d' : '#e9b48c'; cx.lineWidth = 5;      // duim omhoog
+    cx.beginPath(); cx.moveTo(hx, hy - 4); cx.lineTo(hx, hy - 15); cx.stroke();
+    cx.lineCap = 'butt';
+  }
+}
+
+// =====================================================================================
+//  RAMEN (oefening 2: onderarm optillen met de handpalm naar beneden = trekker)
+// =====================================================================================
+function ramenMaten(W, H) { const x = 22, y = 22, w = W - 44, h = H - 92; return { x, y, w, h, kw: w / 10 }; }
+
+function maakUitzicht(w, h) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  const lucht = g.createLinearGradient(0, 0, 0, h * .6);
+  lucht.addColorStop(0, '#5aa7ff'); lucht.addColorStop(.55, '#ffb38a'); lucht.addColorStop(1, '#ffd98f');
+  g.fillStyle = lucht; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#fff1b8'; g.beginPath(); g.arc(w * .68, h * .5, 34, 0, 7); g.fill();
+  const berg = (kleur, punten) => { g.fillStyle = kleur; g.beginPath(); g.moveTo(0, h * .62); punten.forEach(([px, py]) => g.lineTo(px * w, py * h)); g.lineTo(w, h * .62); g.closePath(); g.fill(); };
+  berg('#8f7fb8', [[.1, .36], [.25, .5], [.42, .28], [.6, .5], [.78, .34], [.95, .48]]);
+  berg('#6b5f98', [[.18, .5], [.34, .42], [.5, .56], [.7, .45], [.88, .55]]);
+  const zee = g.createLinearGradient(0, h * .6, 0, h);
+  zee.addColorStop(0, '#3f8fd6'); zee.addColorStop(1, '#1d5e9e');
+  g.fillStyle = zee; g.fillRect(0, h * .6, w, h * .4);
+  g.fillStyle = 'rgba(255,240,180,.6)'; for (let i = 0; i < 9; i++) g.fillRect(w * .68 - 30 + Math.random() * 60, h * (.63 + i * .035), 18 + Math.random() * 30, 2);
+  g.fillStyle = '#fff'; g.beginPath(); g.moveTo(w * .25, h * .78); g.lineTo(w * .25, h * .66); g.lineTo(w * .31, h * .77); g.closePath(); g.fill();
+  g.fillStyle = '#7a4a2a'; g.fillRect(w * .21, h * .78, w * .12, 6);
+  g.strokeStyle = '#3a2a4a'; g.lineWidth = 2;
+  for (const [bx, by] of [[.2, .2], [.26, .16], [.31, .22]]) { g.beginPath(); g.moveTo(bx * w - 7, by * h); g.quadraticCurveTo(bx * w - 3, by * h - 5, bx * w, by * h); g.quadraticCurveTo(bx * w + 3, by * h - 5, bx * w + 7, by * h); g.stroke(); }
+  return c;
+}
+function maakBeslag(w, h) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  g.fillStyle = 'rgba(205,218,230,.96)'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 260; i++) {          // druppels
+    const x = Math.random() * w, y = Math.random() * h, r = 1 + Math.random() * 3.2;
+    g.fillStyle = 'rgba(150,170,190,.55)'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.arc(x - r * .3, y - r * .3, r * .35, 0, 7); g.fill();
+  }
+  return c;
+}
+function ramenKolomKlaar(k, netjes) {
+  const R = spel.ramen; if (!R.laag || k > 9) return;
+  const g = R.laag.getContext('2d'), kw = R.w / 10;
+  g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; g.fillRect(k * kw - 1, 0, kw + 2, R.h);
+  g.globalCompositeOperation = 'source-over';
+  if (!netjes) {                           // strepen blijven achter
+    g.strokeStyle = 'rgba(190,205,220,.75)'; g.lineWidth = 3;
+    for (let s = 0; s < 3; s++) {
+      const x = k * kw + kw * (.2 + .3 * s); g.beginPath(); g.moveTo(x, R.h);
+      for (let y = R.h; y > 0; y -= 20) g.lineTo(x + Math.sin(y / 25 + s) * 4, y);
+      g.stroke();
+    }
+  }
+}
+
+function tekenRamen(W, H, nu, dt, f, afw, bezig) {
+  const R = spel.ramen, m = ramenMaten(W, H);
+  const iw = Math.round(m.w), ih = Math.round(m.h);
+  if (!R.uitzicht || R.w !== iw || R.h !== ih) { R.uitzicht = maakUitzicht(iw, ih); R.laag = null; }
+  if (!R.laag) {                           // nieuw beslagen raam; al gedane banen meteen droog
+    R.w = iw; R.h = ih; R.laag = maakBeslag(iw, ih);
+    spel.resultaten.forEach((netjes, k) => ramenKolomKlaar(k, netjes));
+  }
+  // muur
+  cx.fillStyle = '#efe4d2'; cx.fillRect(0, 0, W, H);
+  const k = spel.resultaten.length;
+  // trekker veegt de huidige baan droog, van onder naar boven
+  if (bezig && k < 10) {
+    const yS = ih * (1 - Math.min(1, f));
+    const g = R.laag.getContext('2d');
+    g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; g.fillRect(k * m.kw - 1, yS, m.kw + 2, ih - yS); g.globalCompositeOperation = 'source-over';
+  }
+  cx.drawImage(R.uitzicht, m.x, m.y);
+  cx.drawImage(R.laag, m.x, m.y);
+  // glans als het raam schoon is
+  if (k >= 10) {
+    cx.fillStyle = 'rgba(255,255,255,.18)'; cx.beginPath(); cx.moveTo(m.x + 30, m.y); cx.lineTo(m.x + 90, m.y); cx.lineTo(m.x + 20, m.y + ih); cx.lineTo(m.x - 40 + 30, m.y + ih); cx.fill();
+    for (let i = 0; i < 6; i++) tekenSter(m.x + (i * 53 + nu / 20) % iw, m.y + 30 + (i * 71) % (ih - 60), 4 + 2 * Math.sin(nu / 200 + i), 'rgba(255,255,255,.9)');
+  }
+  // kozijn en vensterbank
+  cx.strokeStyle = '#ffffff'; cx.lineWidth = 14; cx.strokeRect(m.x - 7, m.y - 7, iw + 14, ih + 14);
+  cx.strokeStyle = '#d9cdb8'; cx.lineWidth = 2; cx.strokeRect(m.x - 14, m.y - 14, iw + 28, ih + 28);
+  cx.fillStyle = '#fbfaf7'; cx.fillRect(m.x - 24, m.y + ih + 10, iw + 48, 16);
+  cx.fillStyle = '#d9cdb8'; cx.fillRect(m.x - 24, m.y + ih + 26, iw + 48, 4);
+  // plantje op de vensterbank
+  cx.fillStyle = '#c96b3c'; cx.fillRect(m.x + iw - 40, m.y + ih - 8, 26, 18);
+  cx.fillStyle = '#3f9b4f'; for (let i = 0; i < 5; i++) { cx.beginPath(); cx.ellipse(m.x + iw - 27 + (i - 2) * 6, m.y + ih - 16, 4, 12, (i - 2) * .35, 0, 7); cx.fill(); }
+
+  // de trekker
+  if (bezig && k < 10) {
+    const yS = m.y + ih * (1 - Math.min(1, f)), x0 = m.x + k * m.kw + spel.schud * 3 * Math.sin(nu / 40);
+    cx.setLineDash([6, 6]); cx.strokeStyle = 'rgba(47,111,222,.55)'; cx.lineWidth = 2;
+    cx.strokeRect(m.x + k * m.kw + 1, m.y + 1, m.kw - 2, ih - 2); cx.setLineDash([]);
+    cx.fillStyle = afw ? '#d6453d' : '#2f6fde'; cx.fillRect(x0 - 4, yS - 3, m.kw + 8, 8);
+    cx.fillStyle = '#222'; cx.fillRect(x0 - 4, yS - 6, m.kw + 8, 3);
+    cx.fillStyle = afw ? '#d6453d' : '#ffb703'; cx.fillRect(x0 + m.kw / 2 - 3, yS + 5, 6, 26);
+  }
+}
+
+// =====================================================================================
+//  MOLEN (oefening 3: hand draaien van duim omhoog naar plat)
+// =====================================================================================
+function tekenMolen(W, H, nu, dt, f, afw, bezig, l) {
+  const M = spel.molen;
+  tekenLucht(W, H, afw); tekenZon(W * .14, H * .1, afw);
+  // wind: hoe sneller de molen, hoe sneller de wolken
+  tekenWolken(W, H, dt * (1 + Math.min(3, M.v / 120)), afw, .6);
+  const grond = H - 80;
+  cx.fillStyle = '#e8c86a'; cx.fillRect(0, grond, W, H - grond);
+  cx.strokeStyle = 'rgba(160,120,40,.45)'; cx.lineWidth = 2;
+  for (let x = 6; x < W; x += 12) { cx.beginPath(); cx.moveTo(x, grond + 4); cx.lineTo(x + 3 * Math.sin(nu / 400 + x), grond - 10); cx.stroke(); }
+
+  // beweging van de hand geeft de molen vaart
+  if (bezig) {
+    M.v += Math.abs(f - M.vorigF) * 1100;
+    if (f >= .875 && !M.boven) { M.boven = true; spelBericht('Hup! Nu rustig terugdraaien.'); }
+  }
+  M.vorigF = f;
+  M.v *= Math.exp(-dt * (afw ? 3 : .7));
+  M.v = Math.min(M.v, 600);
+  M.hoek += M.v * dt;
+
+  // de molen
+  const mx = W * .62, top = grond - 175;
+  cx.fillStyle = '#4b3b33';
+  cx.beginPath(); cx.moveTo(mx - 48, grond); cx.lineTo(mx - 28, top + 20); cx.lineTo(mx + 28, top + 20); cx.lineTo(mx + 48, grond); cx.closePath(); cx.fill();
+  cx.fillStyle = '#2f6b4f'; cx.fillRect(mx - 56, grond - 60, 112, 8);           // stelling
+  cx.fillStyle = '#fff'; rondeRect(mx - 12, grond - 40, 24, 40, 8); cx.fill();   // deur
+  cx.fillStyle = '#2f6b4f'; rondeRect(mx - 9, grond - 37, 18, 37, 6); cx.fill();
+  cx.fillStyle = '#fff'; rondeRect(mx - 8, top + 60, 16, 20, 4); cx.fill();
+  cx.fillStyle = '#3a2d27'; cx.beginPath(); cx.ellipse(mx, top + 20, 34, 22, 0, Math.PI, 0); cx.fill();  // kap
+  // wieken
+  const ax = mx, ay = top + 14;
+  for (let i = 0; i < 4; i++) {
+    cx.save(); cx.translate(ax, ay); cx.rotate(rad(M.hoek + i * 90));
+    cx.fillStyle = '#6b4a2f'; cx.fillRect(-3, 0, 6, 128);
+    cx.strokeStyle = '#fff'; cx.lineWidth = 1.5; cx.fillStyle = 'rgba(255,255,255,.78)';
+    cx.fillRect(4, 18, 22, 108); cx.strokeRect(4, 18, 22, 108);
+    for (let y = 30; y < 126; y += 12) { cx.beginPath(); cx.moveTo(4, y); cx.lineTo(26, y); cx.stroke(); }
+    cx.restore();
+  }
+  cx.fillStyle = '#222'; cx.beginPath(); cx.arc(ax, ay, 6, 0, 7); cx.fill();
+  // windstreepjes
+  if (M.v > 90) {
+    cx.strokeStyle = 'rgba(255,255,255,.8)'; cx.lineWidth = 2;
+    for (let i = 0; i < 4; i++) { const y = 60 + i * 34, x = (nu / 3 + i * 97) % (W + 80) - 80; cx.beginPath(); cx.moveTo(x, y); cx.quadraticCurveTo(x + 30, y - 8, x + 60, y); cx.stroke(); }
+  }
+
+  // zakken meel naast de molen
+  spel.resultaten.forEach((goud, i) => {
+    const kolom = i % 5, rij = Math.floor(i / 5);
+    const zx = W * .06 + kolom * 30 + rij * 15, zy = grond + 8 - rij * 26;
+    const g = spel.groei[i] ?? 1;
+    cx.fillStyle = goud ? '#ffd23f' : '#f3e6c8';
+    rondeRect(zx, zy + 30 * (1 - g), 26, 30 * g, 9); cx.fill();
+    cx.strokeStyle = goud ? '#c98f00' : '#c9b48a'; cx.lineWidth = 1.5; cx.stroke();
+    if (g > .8) { cx.fillStyle = goud ? '#8a5a00' : '#8a7550'; cx.font = '700 7px system-ui,sans-serif'; cx.textAlign = 'center'; cx.fillText('MEEL', zx + 13, zy + 20); }
+  });
+
+  // draaiknop links: zo staat je hand nu
+  const kx = 64, ky = grond - 120, r = 40;
+  cx.fillStyle = 'rgba(255,255,255,.85)'; cx.beginPath(); cx.arc(kx, ky, r + 12, 0, 7); cx.fill();
+  cx.strokeStyle = 'rgba(47,111,222,.5)'; cx.lineWidth = 2; cx.setLineDash([4, 4]);
+  cx.beginPath(); cx.moveTo(kx, ky); cx.lineTo(kx + r + 6, ky); cx.stroke(); cx.setLineDash([]);
+  const hh = Math.min(1.1, f) * 90;
+  cx.strokeStyle = f >= .875 ? '#1f9d6b' : '#2f6fde'; cx.lineWidth = 6; cx.lineCap = 'round';
+  cx.beginPath(); cx.arc(kx, ky, r, -Math.PI / 2, -Math.PI / 2 + rad(hh)); cx.stroke();
+  cx.strokeStyle = afw ? '#d6453d' : '#e9b48c'; cx.lineWidth = 16;
+  cx.beginPath(); cx.moveTo(kx - 26 * Math.sin(rad(hh)), ky + 26 * Math.cos(rad(hh))); cx.lineTo(kx + 26 * Math.sin(rad(hh)), ky - 26 * Math.cos(rad(hh))); cx.stroke();
+  cx.fillStyle = afw ? '#d6453d' : '#e9b48c'; cx.beginPath(); cx.arc(kx + 32 * Math.sin(rad(hh)) - 8 * Math.cos(rad(hh)), ky - 32 * Math.cos(rad(hh)) - 8 * Math.sin(rad(hh)), 6, 0, 7); cx.fill();
+  cx.lineCap = 'butt';
+  cx.fillStyle = '#16233a'; cx.font = '600 11px system-ui,sans-serif'; cx.textAlign = 'center';
+  cx.fillText('jouw hand', kx, ky + r + 26);
 }
 
 // =====================================================================================
@@ -958,6 +1308,9 @@ function alertZacht(t) { alert(t); }
 function tekenAlles() { tekenVerbinding(); tekenOverzicht(); tekenLive(); spelScore(); }
 
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => kiesTab(b.dataset.tab)));
+document.querySelectorAll('#spelKeuze .chip').forEach(c => c.addEventListener('click', () => {
+  inst.spel = c.dataset.spel; bewaarInst(); spel.ramen.laag = null; spelScore();
+}));
 $('verbindKnop').addEventListener('click', () => st.demoActief ? kiesTab('instellingen') : (st.verbonden ? kiesTab('instellingen') : verbind()));
 $('iVerbindKnop').addEventListener('click', () => st.verbonden ? verbreek() : verbind());
 $('weekTerug').addEventListener('click', () => { weekVerschuiving--; tekenOverzicht(); });
