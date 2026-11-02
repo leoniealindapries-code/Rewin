@@ -105,6 +105,19 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--kaart);bor
 nav button{border:0;background:none;padding:8px 0 9px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--zacht);cursor:pointer}
 nav button svg{width:24px;height:24px}
 nav button.actief{color:var(--blauw);font-weight:600}
+.oefkaart{margin-bottom:16px}
+.groot-badge{width:52px;height:52px;border-radius:15px;font-size:24px}
+.oefnaam{font-size:20px;font-weight:700}
+.groeptitel{font-size:13px;font-weight:700;color:var(--zacht);text-transform:uppercase;letter-spacing:.5px;margin:6px 2px 10px}
+.appgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 6px;margin-bottom:20px}
+.app{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:0;color:var(--inkt);font:inherit}
+.app .ico{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;font-size:32px;background:linear-gradient(135deg,var(--a),var(--b));box-shadow:0 4px 12px rgba(22,35,58,.18)}
+.app:active .ico{transform:scale(.94)}
+.app span{font-size:12.5px;font-weight:600;text-align:center;line-height:1.2}
+.app small{font-size:11px;color:var(--zacht);margin-top:-4px}
+.app.anders{opacity:.6}
+.spelkop{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.terug{border:0;background:var(--blauw-licht);border-radius:10px;padding:7px 12px;font-weight:600;cursor:pointer}
 .verborgen{display:none!important}
 </style>
 </head>
@@ -117,10 +130,10 @@ nav button.actief{color:var(--blauw);font-weight:600}
 <main>
   <!-- ================= OVERZICHT ================= -->
   <section class="tab actief" id="tab-overzicht">
-    <div id="herinneringBanner" class="melding oranje verborgen">Je hebt vandaag nog niet geoefend. Even 10 minuten voor je pols?</div>
+    <div id="herinneringBanner" class="melding oranje verborgen" data-t>Je hebt vandaag nog niet geoefend. Even 10 minuten voor je pols?</div>
 
     <div class="kaart">
-      <h2>Vandaag</h2>
+      <h2 data-t>Vandaag</h2>
       <div class="rij">
         <svg width="86" height="86" viewBox="0 0 86 86" aria-hidden="true">
           <circle cx="43" cy="43" r="35" fill="none" stroke="var(--lijn)" stroke-width="10"/>
@@ -130,7 +143,7 @@ nav button.actief{color:var(--blauw);font-weight:600}
         </svg>
         <div>
           <div class="groot" id="dagHerh">0</div>
-          <div class="zacht">herhalingen vandaag</div>
+          <div class="zacht" data-t>herhalingen vandaag</div>
           <div id="dagBericht" style="margin-top:4px;font-weight:600"></div>
         </div>
       </div>
@@ -138,23 +151,23 @@ nav button.actief{color:var(--blauw);font-weight:600}
 
     <div class="kaart">
       <div class="weeknav">
-        <button id="weekTerug" aria-label="Vorige week">‹</button>
+        <button id="weekTerug" aria-label="‹">‹</button>
         <div style="text-align:center"><b id="weekTitel">Deze week</b><div class="zacht klein" id="weekDatum"></div></div>
-        <button id="weekVooruit" aria-label="Volgende week">›</button>
+        <button id="weekVooruit" aria-label="›">›</button>
       </div>
-      <svg id="weekGrafiek" viewBox="0 0 340 210" width="100%" role="img" aria-label="Herhalingen per dag"></svg>
+      <svg id="weekGrafiek" viewBox="0 0 340 210" width="100%" role="img"></svg>
       <div class="legenda">
-        <span style="--k:var(--oef1)">Oefening 1</span><span style="--k:var(--oef2)">Oefening 2</span><span style="--k:var(--oef3)">Oefening 3</span>
+        <span style="--k:var(--oef1)" data-t>Oefening 1</span><span style="--k:var(--oef2)" data-t>Oefening 2</span><span style="--k:var(--oef3)" data-t>Oefening 3</span>
       </div>
       <div class="stats">
-        <div class="stat"><b id="wSessies">0</b><span>keer geoefend</span></div>
-        <div class="stat"><b id="wNetjes">–</b><span>netjes uitgevoerd</span></div>
-        <div class="stat"><b id="wReeks">0</b><span>dagen op rij</span></div>
+        <div class="stat"><b id="wSessies">0</b><span data-t>keer geoefend</span></div>
+        <div class="stat"><b id="wNetjes">–</b><span data-t>netjes uitgevoerd</span></div>
+        <div class="stat"><b id="wReeks">0</b><span data-t>dagen op rij</span></div>
       </div>
     </div>
 
     <div class="kaart">
-      <h2>Laatste oefeningen</h2>
+      <h2 data-t>Laatste oefeningen</h2>
       <div id="sessieLijst"></div>
     </div>
   </section>
@@ -165,73 +178,89 @@ nav button.actief{color:var(--blauw);font-weight:600}
     <div class="tip info" id="liveTip">Hier zie je straks hoe je hand beweegt.</div>
     <div class="panelen">
       <div class="paneel breed"><div class="titel" id="paneelATitel">Je arm (zijaanzicht)</div><svg id="paneelA" viewBox="0 0 320 170"></svg></div>
-      <div class="paneel"><div class="titel">Pols op / neer</div><svg id="paneelB" viewBox="0 0 150 100"></svg></div>
-      <div class="paneel"><div class="titel">Pols opzij</div><svg id="paneelC" viewBox="0 0 150 100"></svg></div>
+      <div class="paneel"><div class="titel" data-t>Pols op / neer</div><svg id="paneelB" viewBox="0 0 150 100"></svg></div>
+      <div class="paneel"><div class="titel" data-t>Pols opzij</div><svg id="paneelC" viewBox="0 0 150 100"></svg></div>
     </div>
     <div class="cijfers">
-      <div class="stat"><b id="lHerh">0/10</b><span>herhaling</span></div>
-      <div class="stat"><b id="lHoek">0°</b><span>hoek</span></div>
-      <div class="stat"><b id="lTempo">–</b><span>tempo °/s</span></div>
+      <div class="stat"><b id="lHerh">0/10</b><span data-t>herhaling</span></div>
+      <div class="stat"><b id="lHoek">0°</b><span data-t>hoek</span></div>
+      <div class="stat"><b id="lTempo">–</b><span data-t>tempo °/s</span></div>
     </div>
     <div class="log" id="afwLog"></div>
   </section>
 
   <!-- ================= SPEL ================= -->
   <section class="tab" id="tab-spel">
-    <div class="keuze" id="spelKeuze">
-      <button class="chip" data-spel="auto">✨ Automatisch</button>
-      <button class="chip" data-spel="lift">👍 Liften · oef 1</button>
-      <button class="chip" data-spel="ramen">🪟 Ramen · oef 2</button>
-      <button class="chip" data-spel="molen">🌬️ Molen · oef 3</button>
-      <button class="chip" data-spel="ballon">🎈 Ballon · alle</button>
+    <!-- menu: spellen als app-icoontjes -->
+    <div id="spelMenu">
+      <div class="kaart oefkaart">
+        <div class="rij">
+          <div class="badge groot-badge" id="mOefBadge">?</div>
+          <div><div class="zacht klein" data-t>Je bent nu bij</div><div id="mOef" class="oefnaam"></div><div class="zacht klein" id="mOefUitleg"></div></div>
+        </div>
+      </div>
+      <div id="mGroepen"></div>
     </div>
-    <div class="spelinfo"><span id="spelScore">🌸 0</span><span id="spelBeste">Record: 0</span></div>
-    <div id="spelVak"><canvas id="spel"></canvas></div>
-    <p class="zacht klein" id="spelUitleg" style="margin-top:10px"></p>
+    <!-- het spel zelf -->
+    <div id="spelScherm" class="verborgen">
+      <div class="spelkop"><button class="terug" id="spelTerug">‹ <span data-t>Alle spellen</span></button><b id="spelTitel"></b></div>
+      <div class="spelinfo"><span id="spelScore">🌸 0</span><span id="spelBeste">Record: 0</span></div>
+      <div id="spelVak"><canvas id="spel"></canvas></div>
+      <p class="zacht klein" id="spelUitleg" style="margin-top:10px"></p>
+    </div>
   </section>
 
   <!-- ================= INSTELLINGEN ================= -->
   <section class="tab" id="tab-instellingen">
     <div class="kaart">
+      <h2>Taal / Language</h2>
+      <div class="veld"><label for="iTaal"><span data-t>Taal van de app</span></label>
+        <select id="iTaal"><option value="nl">Nederlands</option><option value="en">English</option></select></div>
+    </div>
+
+    <div class="kaart">
       <h2>Rewin</h2>
-      <div class="veld"><label>Verbinding<small id="iVerbinding">Niet verbonden</small></label></div>
-      <div class="veld"><label>Batterij<small id="iBatterij">onbekend</small></label></div>
-      <div class="veld"><label for="iHelder">Helderheid LED-ring</label><input type="range" id="iHelder" min="5" max="120" value="25"></div>
+      <div class="veld"><label><span data-t>Verbinding</span><small id="iVerbinding">Niet verbonden</small></label></div>
+      <div class="veld"><label><span data-t>Batterij</span><small id="iBatterij">onbekend</small></label></div>
+      <div class="veld"><label for="iHelder"><span data-t>Helderheid LED-ring</span><small id="iHelderTekst"></small></label><input type="range" id="iHelder" min="5" max="120" value="25"></div>
+      <div class="veld"><label for="iTril"><span data-t>Sterkte trilmotor</span><small id="iTrilTekst"></small></label><input type="range" id="iTril" min="0" max="100" step="5" value="0"></div>
+      <button class="knop licht" id="iTrilTest" data-t>Trilling testen</button>
+      <p class="zacht klein" style="margin:8px 0 0" data-t>Zet de trilmotor pas aan als hij via een transistor en diode is aangesloten. Anders kunnen de sensoren opnieuw opstarten.</p>
       <button class="knop" id="iVerbindKnop">Verbinden</button>
       <p class="zacht klein" id="btUitleg" style="margin:10px 0 0"></p>
     </div>
 
     <div class="kaart">
-      <h2>Doel en herinnering</h2>
-      <div class="veld"><label for="iDoel">Keer oefenen per dag<small>Het advies is 3 keer per dag</small></label>
+      <h2 data-t>Doel en herinnering</h2>
+      <div class="veld"><label for="iDoel"><span data-t>Keer oefenen per dag</span><small data-t>Het advies is 3 keer per dag</small></label>
         <select id="iDoel"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>
-      <div class="veld"><label for="iHerinnering">Herinnering<small>Als je vandaag nog niet geoefend hebt</small></label><input type="checkbox" class="schakel" id="iHerinnering" checked></div>
-      <div class="veld"><label for="iTijd">Vanaf</label><input type="time" id="iTijd" value="18:00"></div>
+      <div class="veld"><label for="iHerinnering"><span data-t>Herinnering</span><small data-t>Als je vandaag nog niet geoefend hebt</small></label><input type="checkbox" class="schakel" id="iHerinnering" checked></div>
+      <div class="veld"><label for="iTijd"><span data-t>Vanaf</span></label><input type="time" id="iTijd" value="18:00"></div>
       <button class="knop licht" id="iMeldingKnop">Meldingen toestaan</button>
-      <p class="zacht klein" style="margin:10px 0 0">Werkt het best als de app op je beginscherm staat. Je telefoon bepaalt zelf wanneer de app op de achtergrond mag kijken, dus de melding kan wat later komen dan de ingestelde tijd.</p>
+      <p class="zacht klein" style="margin:10px 0 0" data-t>Werkt het best als de app op je beginscherm staat. Je telefoon bepaalt zelf wanneer de app op de achtergrond mag kijken, dus de melding kan wat later komen dan de ingestelde tijd.</p>
     </div>
 
     <div class="kaart">
-      <h2>Richting van de tips</h2>
-      <div class="veld"><label for="iOmPitch">Op / neer omdraaien<small>Zegt de app "omhoog" terwijl je hand zakt? Zet dit aan.</small></label><input type="checkbox" class="schakel" id="iOmPitch"></div>
-      <div class="veld"><label for="iOmYaw">Duim / pink omdraaien<small>Zelfde, voor opzij buigen.</small></label><input type="checkbox" class="schakel" id="iOmYaw"></div>
+      <h2 data-t>Richting van de tips</h2>
+      <div class="veld"><label for="iOmPitch"><span data-t>Op / neer omdraaien</span><small data-t>Zegt de app "omhoog" terwijl je hand zakt? Zet dit aan.</small></label><input type="checkbox" class="schakel" id="iOmPitch"></div>
+      <div class="veld"><label for="iOmYaw"><span data-t>Duim / pink omdraaien</span><small data-t>Zelfde, voor opzij buigen.</small></label><input type="checkbox" class="schakel" id="iOmYaw"></div>
     </div>
 
     <div class="kaart">
-      <h2>Proberen en gegevens</h2>
-      <div class="veld"><label for="iDemo">Demo-modus<small>Doet alsof er een Rewin verbonden is, met een voorbeeldweek</small></label><input type="checkbox" class="schakel" id="iDemo"></div>
-      <button class="knop licht" id="iInstalleer">App op beginscherm zetten</button>
-      <button class="knop licht" id="iExport">Gegevens downloaden (CSV)</button>
-      <button class="knop rood" id="iWis">Alle gegevens wissen</button>
+      <h2 data-t>Proberen en gegevens</h2>
+      <div class="veld"><label for="iDemo"><span data-t>Demo-modus</span><small data-t>Doet alsof er een Rewin verbonden is, met een voorbeeldweek</small></label><input type="checkbox" class="schakel" id="iDemo"></div>
+      <button class="knop licht" id="iInstalleer" data-t>App op beginscherm zetten</button>
+      <button class="knop licht" id="iExport" data-t>Gegevens downloaden (CSV)</button>
+      <button class="knop rood" id="iWis" data-t>Alle gegevens wissen</button>
     </div>
   </section>
 </main>
 
 <nav>
-  <button data-tab="overzicht" class="actief"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Overzicht</button>
-  <button data-tab="live"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg>Live</button>
-  <button data-tab="spel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="9" rx="6" ry="7"/><path d="M12 16l-1 2h2l-1-2v5"/></svg>Spel</button>
-  <button data-tab="instellingen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Instellingen</button>
+  <button data-tab="overzicht" class="actief"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span data-t>Overzicht</span></button>
+  <button data-tab="live"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg><span data-t>Live</span></button>
+  <button data-tab="spel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span data-t>Spellen</span></button>
+  <button data-tab="instellingen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span data-t>Instellingen</span></button>
 </nav>
 
 <script>
@@ -244,14 +273,163 @@ const schrijf = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } 
 
 let sessies = lees('rewin_sessies', []);       // [{key,start,oef,herh,doel,duur,reden,tempo,afw,pct,max,demo}]
 const inst = Object.assign({ dagdoel: 3, herinnering: true, tijd: '18:00', omPitch: false, omYaw: false,
-  helderheid: 25, beste: 0, demo: false, meldDag: '' }, lees('rewin_inst', {}));
+  helderheid: 25, tril: 0, taal: 'nl', beste: 0, demo: false, meldDag: '' }, lees('rewin_inst', {}));
 const bewaarInst = () => { schrijf('rewin_inst', inst); schrijfStatus(); };
 const bewaarSessies = () => { schrijf('rewin_sessies', sessies); schrijfStatus(); };
 
 const p2 = n => String(n).padStart(2, '0');
 const dagSleutel = d => d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
-const DAGEN = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
-const MAANDEN = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+// =====================================================================================
+//  TAAL (Nederlands / English)
+//  t('Nederlandse tekst {x}', { x: 5 })  ->  de tekst in de gekozen taal
+// =====================================================================================
+const EN = {
+  // vaste teksten
+  'Je hebt vandaag nog niet geoefend. Even 10 minuten voor je pols?': "You haven't practised yet today. How about 10 minutes for your wrist?",
+  'Vandaag': 'Today', 'herhalingen vandaag': 'repetitions today',
+  'Oefening 1': 'Exercise 1', 'Oefening 2': 'Exercise 2', 'Oefening 3': 'Exercise 3', 'Oefening': 'Exercise',
+  'keer geoefend': 'sessions', 'netjes uitgevoerd': 'done neatly', 'dagen op rij': 'days in a row',
+  'Laatste oefeningen': 'Recent sessions', 'Pols op / neer': 'Wrist up / down', 'Pols opzij': 'Wrist sideways',
+  'herhaling': 'repetition', 'hoek': 'angle', 'tempo °/s': 'speed °/s',
+  'Je bent nu bij': 'You are now doing', 'Alle spellen': 'All games', 'Taal van de app': 'App language',
+  'Verbinding': 'Connection', 'Batterij': 'Battery', 'Helderheid LED-ring': 'LED ring brightness',
+  'Sterkte trilmotor': 'Vibration strength', 'Trilling testen': 'Test vibration', 'uit': 'off',
+  'Zet de trilmotor pas aan als hij via een transistor en diode is aangesloten. Anders kunnen de sensoren opnieuw opstarten.':
+    'Only turn on the vibration motor once it is connected through a transistor and a diode. Otherwise the sensors may restart.',
+  'Doel en herinnering': 'Goal and reminder', 'Keer oefenen per dag': 'Sessions per day', 'Het advies is 3 keer per dag': 'The advice is 3 times a day',
+  'Herinnering': 'Reminder', 'Als je vandaag nog niet geoefend hebt': "If you haven't practised yet today", 'Vanaf': 'From',
+  'Werkt het best als de app op je beginscherm staat. Je telefoon bepaalt zelf wanneer de app op de achtergrond mag kijken, dus de melding kan wat later komen dan de ingestelde tijd.':
+    'Works best when the app is on your home screen. Your phone decides when the app may check in the background, so the notification may arrive a little later than the set time.',
+  'Richting van de tips': 'Direction of the tips', 'Op / neer omdraaien': 'Flip up / down',
+  'Zegt de app "omhoog" terwijl je hand zakt? Zet dit aan.': 'Does the app say "up" while your hand drops? Turn this on.',
+  'Duim / pink omdraaien': 'Flip thumb / little finger', 'Zelfde, voor opzij buigen.': 'The same, for bending sideways.',
+  'Proberen en gegevens': 'Try out and data', 'Demo-modus': 'Demo mode',
+  'Doet alsof er een Rewin verbonden is, met een voorbeeldweek': 'Pretends a Rewin is connected, with an example week',
+  'App op beginscherm zetten': 'Add app to home screen', 'Gegevens downloaden (CSV)': 'Download data (CSV)', 'Alle gegevens wissen': 'Delete all data',
+  'Overzicht': 'Overview', 'Live': 'Live', 'Spellen': 'Games', 'Instellingen': 'Settings',
+  // toestand van Rewin
+  'Druk op de startknop van je Rewin om de beginstand (baseline) te zetten. Leg je arm recht op tafel.': 'Press the start button on your Rewin to set the starting position (baseline). Rest your arm straight on the table.',
+  'Beginstand wordt gezet…': 'Setting the starting position…',
+  'Beginstand staat. Druk nog een keer op start om te beginnen.': 'Starting position set. Press start again to begin.',
+  'Bezig met oefenen': 'Exercising', 'Gestopt': 'Stopped',
+  'Klaar! Druk op de oefeningknop voor de volgende oefening.': 'Done! Press the exercise button for the next exercise.',
+  // verbinding
+  'opzij': 'sideways', 'op/neer': 'up/down', 'draaien': 'rotating', 'pols {as}': 'wrist {as}',
+  'Bluetooth werkt hier niet. Open deze app in Chrome op een Android-telefoon. Op een iPhone kan het helaas niet. Je kunt wel de demo-modus proberen (Instellingen).':
+    'Bluetooth does not work here. Open this app in Chrome on an Android phone. Unfortunately it does not work on an iPhone. You can try demo mode (Settings).',
+  'Verbinden lukte niet: ': 'Could not connect: ', 'Verbinden…': 'Connecting…', 'Demo': 'Demo', 'Verbonden': 'Connected', 'Verbind': 'Connect',
+  'Demo-modus (geen echte Rewin)': 'Demo mode (no real Rewin)', 'Verbonden met ': 'Connected to ', 'Niet verbonden': 'Not connected',
+  'onbekend (wordt nog niet gemeten)': 'unknown (not measured yet)', 'Verbinding verbreken': 'Disconnect', 'Verbinden': 'Connect',
+  // overzicht
+  'Nog niet geoefend vandaag': 'Not practised yet today', 'Dagdoel gehaald! 🎉': 'Daily goal reached! 🎉', 'Nog {n} keer te gaan': '{n} more to go',
+  'Deze week': 'This week', 'Vorige week': 'Last week', '{n} weken geleden': '{n} weeks ago', 'dagdoel': 'daily goal',
+  'herhalingen per dag · ×&nbsp;= keer geoefend · % = netjes': 'repetitions per day · ×&nbsp;= sessions · % = neat',
+  '{a} van {b} herhalingen': '{a} of {b} repetitions', '{n}× gecorrigeerd': 'corrected {n}×',
+  'Nog geen oefeningen. Verbind je Rewin en begin met oefenen. De resultaten komen hier vanzelf.': 'No sessions yet. Connect your Rewin and start exercising. Your results will appear here automatically.',
+  // live en tips
+  'Wacht op je Rewin…': 'Waiting for your Rewin…',
+  'Draai je hand één keer rustig om, met een rechte pols.': 'Slowly turn your hand over once, keeping your wrist straight.',
+  'Til je arm één keer rustig op, met een rechte pols.': 'Slowly lift your arm once, keeping your wrist straight.',
+  'Zo leert Rewin hoe de sensoren zitten. Daarna krijg je tips.': 'This lets Rewin learn how the sensors are placed. After that you will get tips.',
+  '↓ Je hand buigt omhoog. Laat je hand iets zakken, in één lijn met je onderarm.': '↓ Your hand is bending up. Lower your hand a little, in line with your forearm.',
+  '↑ Je hand zakt naar beneden. Til je hand iets op, in één lijn met je onderarm.': '↑ Your hand is dropping. Lift your hand a little, in line with your forearm.',
+  '→ Je hand buigt naar de duimkant. Breng hem terug naar het midden.': '→ Your hand is bending towards your thumb. Bring it back to the middle.',
+  '← Je hand buigt naar de pinkkant. Breng hem terug naar het midden.': '← Your hand is bending towards your little finger. Bring it back to the middle.',
+  '⟲ Je hand draait los van je onderarm. Houd je hand en onderarm samen.': '⟲ Your hand is twisting away from your forearm. Keep your hand and forearm together.',
+  '{a}° te ver (max {b}°)': '{a}° too far (max {b}°)', '{a}° te ver': '{a}° too far',
+  'Houd je pols zo recht.': 'Keep your wrist straight like this.', 'Iets rustiger omhoog.': 'A little slower on the way up.',
+  'Iets rustiger terug, langzaam zakken.': 'A little slower on the way back, lower slowly.', 'Je mag iets sneller omhoog.': 'You can go up a little faster.',
+  '✓ Goed zo! Je pols is recht.': '✓ Well done! Your wrist is straight.',
+  'Verbind eerst met je Rewin (knop rechtsboven).': 'First connect to your Rewin (button top right).',
+  'Verbonden. Wacht op je Rewin…': 'Connected. Waiting for your Rewin…',
+  'Klaar! Mooi gedaan. 🎉': 'Done! Well done. 🎉', 'Hier zie je hoe je hand beweegt zodra je begint.': 'Here you will see how your hand moves once you start.',
+  'Je arm (zijaanzicht)': 'Your arm (side view)', 'Je hand draaien (vooraanzicht)': 'Turning your hand (front view)',
+  'doel': 'target', 'duim omhoog': 'thumb up', 'omhoog': 'up', 'omlaag': 'down', 'duimkant': 'thumb side', 'pinkkant': 'little finger side',
+  'Laatste correcties:': 'Latest corrections:',
+  // spelmenu
+  'Spellen voor oefening {n}': 'Games for exercise {n}', 'Voor elke oefening': 'For every exercise', 'Andere oefeningen': 'Other exercises',
+  'Nog niet verbonden': 'Not connected yet', 'Verbind je Rewin, of kies hieronder een spel.': 'Connect your Rewin, or choose a game below.',
+  'Arm optillen met je duim omhoog': 'Lift your arm with your thumb up', 'Arm optillen met je handpalm naar beneden': 'Lift your arm with your palm facing down',
+  'Hand draaien: van duim omhoog naar plat': 'Turn your hand: from thumb up to flat',
+  'Liften': 'Hitchhiking', 'Cocktails': 'Cocktails', 'Ramen': 'Windows', 'Gokkast': 'Slot machine', 'Molen': 'Windmill', 'Aaien': 'Pet an animal',
+  'Ballon': 'Balloon', 'Verrassing': 'Surprise', 'Verrassing: {s}': 'Surprise: {s}', 'oef {n}': 'ex {n}', 'alle': 'all', 'Record': 'Record',
+  // spellen: uitleg
+  'Til je arm op (of draai je pols) om de ballon naar de ster te laten vliegen. Kom je rustig terug met een rechte pols, dan groeit er een bloem. Een gouden bloem betekent: de hele herhaling netjes!':
+    'Lift your arm (or turn your wrist) to fly the balloon to the star. Come back slowly with a straight wrist and a flower grows. A golden flower means: the whole repetition was neat!',
+  'Je staat langs de weg. Til je arm op met je duim omhoog: dan stopt er een auto. Laat je arm rustig zakken, dan stap je in en rijd je naar een willekeurige nieuwe plek. Bleef je pols recht, dan is het een nette rit ⭐.':
+    'You are standing by the road. Lift your arm with your thumb up and a car stops. Lower your arm slowly, get in and ride to a random new place. If your wrist stayed straight, it is a neat ride ⭐.',
+  'Je staat achter de bar. Til je arm op en neer met je duim omhoog om de shaker te shaken. Elke herhaling is een cocktail voor de volgende klant, en iedereen bestelt iets anders. Met een rechte pols krijg je fooi ⭐.':
+    'You are behind the bar. Move your arm up and down with your thumb up to shake the shaker. Every repetition is a cocktail for the next customer, and everyone orders something different. With a straight wrist you get a tip ⭐.',
+  'Je hand is de trekker. Til je arm op met je handpalm naar beneden om een baan van het beslagen raam droog te trekken. Na 10 keer is het raam schoon en zie je het uitzicht, elke keer een ander. Met een kromme pols blijven er strepen achter.':
+    'Your hand is the squeegee. Lift your arm with your palm facing down to wipe a strip of the misted window dry. After 10 times the window is clean and you see the view, a different one each time. A bent wrist leaves streaks.',
+  'Til je arm op met je handpalm naar beneden om aan de hendel te trekken. Kom je rustig terug, dan stoppen de rollen. Drie dezelfde = winst. Gemiddeld win je 1 op de 4 keer, helemaal willekeurig. Met een rechte pols krijg je dubbele munten. (Alleen speelgeld!)':
+    'Lift your arm with your palm facing down to pull the lever. Come back slowly and the reels stop. Three the same = a win. On average you win 1 in 4 times, completely at random. With a straight wrist you get double coins. (Play money only!)',
+  'Draai je hand van duim omhoog naar plat op tafel en weer terug. Zo laat je de molen draaien. Elke herhaling maalt een zak meel; met een rechte pols wordt het een gouden zak.':
+    'Turn your hand from thumb up to flat on the table and back. That makes the windmill turn. Every repetition grinds a bag of flour; with a straight wrist it becomes a golden bag.',
+  'Draai je hand van duim omhoog naar plat op tafel om het dier over zijn rug te aaien. Met een rechte pols is het een fijne aai en loopt het liefdesbalkje vol. Gaat het niet netjes, dan is het een te harde tik en schrikt het dier. Krijg jij het balkje vol?':
+    'Turn your hand from thumb up to flat on the table to stroke the animal along its back. With a straight wrist it is a nice stroke and the love bar fills up. If it is not neat, it is a pat that is too hard and the animal is startled. Can you fill the bar?',
+  // spellen: berichten
+  'de zee 🌅': 'the sea 🌅', 'de tulpenvelden 🌷': 'the tulip fields 🌷', 'de stad bij nacht 🌃': 'the city at night 🌃', 'het meer in het bos 🌲': 'the lake in the forest 🌲',
+  'een tropisch strand 🌴': 'a tropical beach 🌴', 'de besneeuwde bergen ❄️': 'the snowy mountains ❄️', 'het noorderlicht ✨': 'the northern lights ✨',
+  'de luchtballonnen 🎈': 'the hot air balloons 🎈', 'buiten': 'outside',
+  'Gouden bloem! ✨': 'Golden flower! ✨', 'Bloem! 🌸': 'Flower! 🌸', 'Lift naar {p}!': 'Ride to {p}!', ' ⭐ Nette rit': ' ⭐ Neat ride',
+  'Wat een uitzicht op {u}!': 'What a view of {u}!', 'Mooi droog! ✨': 'Nice and dry! ✨', 'Droog, maar met strepen. Houd je pols recht.': 'Dry, but with streaks. Keep your wrist straight.',
+  'Gouden zak meel! ✨': 'Golden bag of flour! ✨', 'Zak meel! 🌾': 'Bag of flour! 🌾',
+  '{d} perfect geshaket! ⭐': '{d} perfectly shaken! ⭐', '{d}, beetje gemorst…': '{d}, spilled a little…',
+  '{n} houdt van je! 💖': '{n} loves you! 💖', '{n} vindt het fijn!': '{n} likes that!', 'Woef! 🐶': 'Woof! 🐶', 'Prrr 🐱': 'Purr 🐱', 'Prrr… 🐱': 'Purr… 🐱',
+  'Au! Dat was te hard. {n} schrikt.': 'Ouch! That was too hard. {n} is startled.', 'Au! 😿': 'Ouch! 😿',
+  '🌸 {n}   ✨ {g} goud': '🌸 {n}   ✨ {g} gold', '🚗 {n} ritjes · {km} km · ⭐ {g}': '🚗 {n} rides · {km} km · ⭐ {g}',
+  '🍹 {n} cocktails · ⭐ {g} fooi': '🍹 {n} cocktails · ⭐ {g} tips', '🪟 {n}/10 banen droog · ✨ {g}': '🪟 {n}/10 strips dry · ✨ {g}',
+  '🪙 {m} munten · {w}/{n} gewonnen': '🪙 {m} coins · {w}/{n} won', '🌾 {n} zakken meel · ✨ {g} goud': '🌾 {n} bags of flour · ✨ {g} gold',
+  '💖 {l}% liefde · {g}/{n} fijne aaien': '💖 {l}% love · {g}/{n} nice strokes',
+  'Dit spel hoort bij oefening {n}': 'This game belongs to exercise {n}', 'Druk op de oefeningknop van je': 'Press the exercise button on your',
+  'Rewin tot lampje {n} brandt.': 'Rewin until light {n} is on.', 'Klaar! 🎉': 'Done! 🎉',
+  '{n} bloemen, {g} goud': '{n} flowers, {g} gold', '{n} ritjes, {km} km': '{n} rides, {km} km', 'Het raam is schoon!': 'The window is clean!',
+  '{n} zakken meel, {g} goud': '{n} bags of flour, {g} gold', '{n} cocktails, {g}× fooi': '{n} cocktails, {g}× tip',
+  '{m} munten gewonnen': '{m} coins won', '{d}: {l}% liefde 💖': '{d}: {l}% love 💖',
+  'Verbind je Rewin': 'Connect your Rewin', '(knop rechtsboven)': '(button top right)', 'Druk op start': 'Press start', 'om te beginnen': 'to begin',
+  'Leg je arm recht op tafel': 'Rest your arm straight on the table', 'en druk op start': 'and press start',
+  'Draai je hand één keer rustig om': 'Slowly turn your hand over once', 'Til je arm één keer rustig op': 'Slowly lift your arm once',
+  'Ster! Nu rustig terug naar beneden.': 'Star! Now slowly back down.',
+  'Er stopt een auto naar {p}! Laat je arm rustig zakken.': 'A car to {p} is stopping! Slowly lower your arm.', 'toet toet! 📯': 'honk honk! 📯',
+  'Hup! Nu rustig terugdraaien.': 'Go! Now slowly turn back.', 'jouw hand': 'your hand', 'MEEL': 'FLOUR',
+  'Shake shake! 🍸 Nu rustig terug naar beneden.': 'Shake shake! 🍸 Now slowly back down.', '+ fooi ⭐': '+ tip ⭐',
+  'De rollen draaien! Nu rustig terug.': 'The reels are spinning! Now slowly back.', 'Drie op een rij! +{w} munten': 'Three in a row! +{w} coins',
+  ' (dubbel, netjes!)': ' (double, neat!)', 'Helaas, volgende keer beter!': 'No luck, better next time!', 'Net niet… nog een keer!': 'So close… try again!',
+  'Geen prijs deze keer.': 'No prize this time.', 'speelgeld · winkans 1 op 4': 'play money · 1 in 4 chance to win',
+  '💖 Liefde van {n}: {l}%': "💖 {n}'s love: {l}%",
+  // meldingen en overig
+  'Meldingen worden hier niet ondersteund.': 'Notifications are not supported here.',
+  'Meldingen staan uit. Je kunt ze aanzetten bij de site-instellingen van Chrome.': "Notifications are off. You can turn them on in Chrome's site settings.",
+  'Meldingen staan aan. Je krijgt een seintje als je nog niet geoefend hebt.': "Notifications are on. You'll get a reminder if you haven't practised yet.",
+  'Meldingen staan aan ✓ (test)': 'Notifications on ✓ (test)', 'Meldingen toestaan': 'Allow notifications',
+  'Weet je zeker dat je alle oefengegevens wilt wissen?': 'Are you sure you want to delete all exercise data?',
+  'Tik in Chrome rechtsboven op ⋮ en kies "Toevoegen aan startscherm" (of "App installeren").': 'In Chrome, tap ⋮ at the top right and choose "Add to Home screen" (or "Install app").',
+  'Zet Bluetooth op je telefoon aan en tik op Verbinden. Kies "Rewin" in de lijst.': 'Turn on Bluetooth on your phone and tap Connect. Choose "Rewin" from the list.',
+  'Deze browser kan geen Bluetooth. Gebruik Chrome op een Android-telefoon (op iPhone werkt het niet). De demo-modus werkt wel overal.':
+    'This browser cannot use Bluetooth. Use Chrome on an Android phone (it does not work on iPhone). Demo mode works everywhere.'
+};
+const ZINNEN_EN = ['One {d}, please!', 'Could I have a {d}?', "I'd love a {d}!", 'A {d}, please!', 'Make me a {d}!', 'Have you got a {d} for me?'];
+const DAGEN_NL = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'], DAGEN_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MAANDEN_NL = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+const MAANDEN_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function t(nl, p) {
+  let s = (inst.taal === 'en' && EN[nl] !== undefined) ? EN[nl] : nl;
+  if (p) s = s.replace(/\{(\w+)\}/g, (m, k) => (p[k] !== undefined ? p[k] : m));
+  return s;
+}
+const taalCode = () => (inst.taal === 'en' ? 'en-GB' : 'nl-NL');
+function zetTaal() {
+  document.documentElement.lang = inst.taal === 'en' ? 'en' : 'nl';
+  DAGEN = inst.taal === 'en' ? DAGEN_EN : DAGEN_NL;
+  MAANDEN = inst.taal === 'en' ? MAANDEN_EN : MAANDEN_NL;
+  document.querySelectorAll('[data-t]').forEach(el => {
+    if (el.dataset.nl === undefined) el.dataset.nl = el.textContent;
+    el.textContent = t(el.dataset.nl);
+  });
+}
+let DAGEN = DAGEN_NL, MAANDEN = MAANDEN_NL;
 const $ = id => document.getElementById(id);
 
 // =====================================================================================
@@ -284,7 +462,7 @@ function verwerk(regel) {
       st.naam = p[1]; st.oef = +p[3] || st.oef; st.opstartId = p[4] || st.opstartId;
       break;
     case 'T':
-      { const vorige = st.oef; st.toestand = +p[1]; st.oef = +p[2] || st.oef; if (st.oef !== vorige) { spel.ramen.laag = null; spelScore(); } }
+      { const vorige = st.oef; st.toestand = +p[1]; st.oef = +p[2] || st.oef; if (st.oef !== vorige) { spel.ramen.laag = null; spelScore(); } tekenSpelMenu(); }
       if (st.toestand === 2 || st.toestand === 0) { st.herhLive = 0; spelNieuweRonde(); }
       if (st.toestand === 5) spelKlaar();
       break;
@@ -302,8 +480,8 @@ function verwerk(regel) {
       spelBloem();
       break;
     case 'A': {
-      const as = { yaw: 'opzij', pitch: 'op/neer', roll: 'draaien' }[p[2]] || p[2];
-      st.afwLog.unshift(`${new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · pols ${as} ${Math.abs(n(3)).toFixed(0)}° (${n(4).toFixed(1)} s)`);
+      const as = t({ yaw: 'opzij', pitch: 'op/neer', roll: 'draaien' }[p[2]] || p[2]);
+      st.afwLog.unshift(`${new Date().toLocaleTimeString(taalCode(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · ${t('pols {as}', { as })} ${Math.abs(n(3)).toFixed(0)}° (${n(4).toFixed(1)} s)`);
       st.afwLog = st.afwLog.slice(0, 3);
       break;
     }
@@ -346,7 +524,7 @@ const btKan = () => !!(navigator.bluetooth);
 async function verbind() {
   if (st.demoActief) return;
   if (!btKan()) {
-    alertZacht('Bluetooth werkt hier niet. Open deze app in Chrome op een Android-telefoon. Op een iPhone kan het helaas niet. Je kunt wel de demo-modus proberen (Instellingen).');
+    alertZacht(t('Bluetooth werkt hier niet. Open deze app in Chrome op een Android-telefoon. Op een iPhone kan het helaas niet. Je kunt wel de demo-modus proberen (Instellingen).'));
     return;
   }
   try {
@@ -356,14 +534,14 @@ async function verbind() {
     });
     await koppel();
   } catch (e) {
-    if (e.name !== 'NotFoundError') alertZacht('Verbinden lukte niet: ' + e.message);
+    if (e.name !== 'NotFoundError') alertZacht(t('Verbinden lukte niet: ') + e.message);
   }
 }
 
 async function koppel() {
   apparaat.removeEventListener('gattserverdisconnected', losgekoppeld);
   apparaat.addEventListener('gattserverdisconnected', losgekoppeld);
-  $('verbindTekst').textContent = 'Verbinden…';
+  $('verbindTekst').textContent = t('Verbinden…');
   const server = await apparaat.gatt.connect();
   const dienst = await server.getPrimaryService(NUS);
   const tx = await dienst.getCharacteristic(NUS_TX);
@@ -377,6 +555,8 @@ async function koppel() {
   await tx.startNotifications();
   st.verbonden = true; handmatigLos = false; buffer = '';
   stuur('HALLO');
+  stuur('HELDERHEID=' + inst.helderheid);          // instellingen opnieuw sturen (de Nano vergeet ze bij uitzetten)
+  stuur('TRIL=' + Math.round(inst.tril * 2.55));
   stuurLiveModus(true);
   tekenVerbinding();
 }
@@ -430,13 +610,14 @@ function stuurLiveModus(forceer) {
 }
 
 function tekenVerbinding() {
-  const aan = st.verbonden || st.demoActief;
+  const aan = !!(st.verbonden || st.demoActief);
   $('verbindKnop').classList.toggle('aan', aan);
-  $('verbindTekst').textContent = st.demoActief ? 'Demo' : aan ? (st.bat ? st.bat.pct + '% 🔋' : 'Verbonden') : 'Verbind';
-  $('iVerbinding').textContent = st.demoActief ? 'Demo-modus (geen echte Rewin)' : aan ? 'Verbonden met ' + (st.naam || apparaat?.name || 'Rewin') : 'Niet verbonden';
-  $('iBatterij').textContent = st.bat ? `${st.bat.pct}% (${st.bat.v.toFixed(2)} V)` : 'onbekend (wordt nog niet gemeten)';
-  $('iVerbindKnop').textContent = aan && !st.demoActief ? 'Verbinding verbreken' : 'Verbinden';
+  $('verbindTekst').textContent = st.demoActief ? t('Demo') : aan ? (st.bat ? st.bat.pct + '% 🔋' : t('Verbonden')) : t('Verbind');
+  $('iVerbinding').textContent = st.demoActief ? t('Demo-modus (geen echte Rewin)') : aan ? t('Verbonden met ') + (st.naam || apparaat?.name || 'Rewin') : t('Niet verbonden');
+  $('iBatterij').textContent = st.bat ? `${st.bat.pct}% (${st.bat.v.toFixed(2)} V)` : t('onbekend (wordt nog niet gemeten)');
+  $('iVerbindKnop').textContent = aan && !st.demoActief ? t('Verbinding verbreken') : t('Verbinden');
   $('iVerbindKnop').disabled = st.demoActief;
+  if (!spelOpen) tekenSpelMenu();
 }
 
 // =====================================================================================
@@ -574,7 +755,7 @@ function tekenOverzicht() {
   $('dagRing').setAttribute('stroke-dasharray', `${Math.min(1, keer / doel) * omtrek} ${omtrek}`);
   $('dagRingTekst').textContent = `${keer}/${doel}`;
   $('dagHerh').textContent = vandaag.reduce((a, s) => a + s.herh, 0);
-  $('dagBericht').textContent = keer === 0 ? 'Nog niet geoefend vandaag' : keer >= doel ? 'Dagdoel gehaald! 🎉' : `Nog ${doel - keer} keer te gaan`;
+  $('dagBericht').textContent = keer === 0 ? t('Nog niet geoefend vandaag') : keer >= doel ? t('Dagdoel gehaald! 🎉') : t('Nog {n} keer te gaan', { n: doel - keer });
   $('dagBericht').style.color = keer >= doel ? 'var(--groen)' : '';
 
   const [uu, mm] = inst.tijd.split(':').map(Number);
@@ -584,7 +765,7 @@ function tekenOverzicht() {
   // ---Week---
   const ma = maandagVan(new Date()); ma.setDate(ma.getDate() + 7 * weekVerschuiving);
   const zo = new Date(ma); zo.setDate(ma.getDate() + 6);
-  $('weekTitel').textContent = weekVerschuiving === 0 ? 'Deze week' : weekVerschuiving === -1 ? 'Vorige week' : `${-weekVerschuiving} weken geleden`;
+  $('weekTitel').textContent = weekVerschuiving === 0 ? t('Deze week') : weekVerschuiving === -1 ? t('Vorige week') : t('{n} weken geleden', { n: -weekVerschuiving });
   $('weekDatum').textContent = `${ma.getDate()} ${MAANDEN[ma.getMonth()]} – ${zo.getDate()} ${MAANDEN[zo.getMonth()]}`;
   $('weekVooruit').disabled = weekVerschuiving >= 0;
 
@@ -606,7 +787,7 @@ function tekenOverzicht() {
     svg += `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="10" fill="var(--zacht)">${v}</text>`;
   }
   svg += `<line x1="${L}" x2="${W - R}" y1="${y(doelHerh)}" y2="${y(doelHerh)}" stroke="var(--groen)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
-  svg += `<text x="${W - R}" y="${y(doelHerh) - 4}" text-anchor="end" font-size="10" fill="var(--groen)" font-weight="600">dagdoel</text>`;
+  svg += `<text x="${W - R}" y="${y(doelHerh) - 4}" text-anchor="end" font-size="10" fill="var(--groen)" font-weight="600">${t('dagdoel')}</text>`;
   const vandaagS = dagSleutel(new Date());
   dagen.forEach((x, i) => {
     const cx = L + bw * i + bw / 2, bb = bw * .58;
@@ -623,7 +804,7 @@ function tekenOverzicht() {
     const nj = netjes(x.lijst);
     svg += `<text x="${cx}" y="${H - B + 32}" text-anchor="middle" font-size="10" fill="${nj === null ? 'var(--zacht)' : nj >= 85 ? 'var(--groen)' : nj >= 65 ? 'var(--oranje)' : 'var(--rood)'}">${nj === null ? '·' : nj + '%'}</text>`;
   });
-  svg += `<text x="${L}" y="12" font-size="10" fill="var(--zacht)">herhalingen per dag · ×&nbsp;= keer geoefend · % = netjes</text>`;
+  svg += `<text x="${L}" y="12" font-size="10" fill="var(--zacht)">${t('herhalingen per dag · ×&nbsp;= keer geoefend · % = netjes')}</text>`;
   $('weekGrafiek').innerHTML = svg;
 
   const weekLijst = dagen.flatMap(x => x.lijst);
@@ -636,12 +817,12 @@ function tekenOverzicht() {
   const laatste = sessies.slice(-8).reverse();
   $('sessieLijst').innerHTML = laatste.length ? laatste.map(s => {
     const d = new Date(s.start);
-    const wanneer = dagSleutel(d) === vandaagS ? 'Vandaag' : `${DAGEN[d.getDay()]} ${d.getDate()} ${MAANDEN[d.getMonth()]}`;
+    const wanneer = dagSleutel(d) === vandaagS ? t('Vandaag') : `${DAGEN[d.getDay()]} ${d.getDate()} ${MAANDEN[d.getMonth()]}`;
     const nj = Math.round(100 - s.pct);
     return `<div class="sessie"><div class="badge" style="background:var(--oef${s.oef})">${s.oef}</div>
-      <div class="info"><b>${s.herh} van ${s.doel} herhalingen</b><div class="zacht klein">${wanneer} ${p2(d.getHours())}:${p2(d.getMinutes())} · ${Math.round(s.duur / 60 * 10) / 10} min${s.afw ? ` · ${s.afw}× gecorrigeerd` : ''}</div></div>
+      <div class="info"><b>${t('{a} van {b} herhalingen', { a: s.herh, b: s.doel })}</b><div class="zacht klein">${wanneer} ${p2(d.getHours())}:${p2(d.getMinutes())} · ${Math.round(s.duur / 60 * 10) / 10} min${s.afw ? ' · ' + t('{n}× gecorrigeerd', { n: s.afw }) : ''}</div></div>
       <div class="pct" style="color:${nj >= 85 ? 'var(--groen)' : nj >= 65 ? 'var(--oranje)' : 'var(--rood)'}">${nj}%</div></div>`;
-  }).join('') : '<div class="leeg">Nog geen oefeningen. Verbind je Rewin en begin met oefenen. De resultaten komen hier vanzelf.</div>';
+  }).join('') : `<div class="leeg">${t('Nog geen oefeningen. Verbind je Rewin en begin met oefenen. De resultaten komen hier vanzelf.')}</div>`;
 }
 
 // =====================================================================================
@@ -651,9 +832,9 @@ const GRENS = 5;
 const TEMPO = { 1: { op: [9, 22.5], neer: [3.75, 7.5] }, 2: { op: [9, 22.5], neer: [3.75, 7.5] }, 3: { op: [22.5, 45], neer: [9, 18] } };
 
 function tipVoor(l) {
-  if (!l) return { soort: 'info', tekst: 'Wacht op je Rewin…', klein: '' };
-  if (!l.uit) return { soort: 'info', tekst: l.oef === 3 ? 'Draai je hand één keer rustig om, met een rechte pols.' : 'Til je arm één keer rustig op, met een rechte pols.',
-    klein: 'Zo leert Rewin hoe de sensoren zitten. Daarna krijg je tips.' };
+  if (!l) return { soort: 'info', tekst: t('Wacht op je Rewin…'), klein: '' };
+  if (!l.uit) return { soort: 'info', tekst: l.oef === 3 ? t('Draai je hand één keer rustig om, met een rechte pols.') : t('Til je arm één keer rustig op, met een rechte pols.'),
+    klein: t('Zo leert Rewin hoe de sensoren zitten. Daarna krijg je tips.') };
   const pitch = l.pitch * (inst.omPitch ? -1 : 1), yaw = l.yaw * (inst.omYaw ? -1 : 1);
   const rollGrens = l.oef === 3 ? 90 : GRENS;
   const r = [Math.abs(pitch) / GRENS, Math.abs(yaw) / GRENS, Math.abs(l.roll) / rollGrens];
@@ -661,21 +842,21 @@ function tipVoor(l) {
   if (m > 1) {
     const i = r.indexOf(m);
     if (i === 0) return pitch > 0
-      ? { soort: 'fout', tekst: '↓ Je hand buigt omhoog. Laat je hand iets zakken, in één lijn met je onderarm.', klein: `${Math.abs(pitch).toFixed(0)}° te ver (max ${GRENS}°)` }
-      : { soort: 'fout', tekst: '↑ Je hand zakt naar beneden. Til je hand iets op, in één lijn met je onderarm.', klein: `${Math.abs(pitch).toFixed(0)}° te ver (max ${GRENS}°)` };
+      ? { soort: 'fout', tekst: t('↓ Je hand buigt omhoog. Laat je hand iets zakken, in één lijn met je onderarm.'), klein: t('{a}° te ver (max {b}°)', { a: Math.abs(pitch).toFixed(0), b: GRENS }) }
+      : { soort: 'fout', tekst: t('↑ Je hand zakt naar beneden. Til je hand iets op, in één lijn met je onderarm.'), klein: t('{a}° te ver (max {b}°)', { a: Math.abs(pitch).toFixed(0), b: GRENS }) };
     if (i === 1) return yaw > 0
-      ? { soort: 'fout', tekst: '→ Je hand buigt naar de duimkant. Breng hem terug naar het midden.', klein: `${Math.abs(yaw).toFixed(0)}° te ver (max ${GRENS}°)` }
-      : { soort: 'fout', tekst: '← Je hand buigt naar de pinkkant. Breng hem terug naar het midden.', klein: `${Math.abs(yaw).toFixed(0)}° te ver (max ${GRENS}°)` };
-    return { soort: 'fout', tekst: '⟲ Je hand draait los van je onderarm. Houd je hand en onderarm samen.', klein: `${Math.abs(l.roll).toFixed(0)}° te ver` };
+      ? { soort: 'fout', tekst: t('→ Je hand buigt naar de duimkant. Breng hem terug naar het midden.'), klein: t('{a}° te ver (max {b}°)', { a: Math.abs(yaw).toFixed(0), b: GRENS }) }
+      : { soort: 'fout', tekst: t('← Je hand buigt naar de pinkkant. Breng hem terug naar het midden.'), klein: t('{a}° te ver (max {b}°)', { a: Math.abs(yaw).toFixed(0), b: GRENS }) };
+    return { soort: 'fout', tekst: t('⟲ Je hand draait los van je onderarm. Houd je hand en onderarm samen.'), klein: t('{a}° te ver', { a: Math.abs(l.roll).toFixed(0) }) };
   }
   // pols goed: dan eventueel een tip over het tempo
-  let klein = 'Houd je pols zo recht.';
+  let klein = t('Houd je pols zo recht.');
   const g = TEMPO[l.oef] || TEMPO[1], b = l.omhoog ? g.op : g.neer;
   if (l.tempo > 1.5 && Math.abs(l.hoek) > 5) {
-    if (l.tempo > b[1] * 1.15) klein = l.omhoog ? 'Iets rustiger omhoog.' : 'Iets rustiger terug, langzaam zakken.';
-    else if (l.tempo < b[0] * .7 && l.omhoog) klein = 'Je mag iets sneller omhoog.';
+    if (l.tempo > b[1] * 1.15) klein = l.omhoog ? t('Iets rustiger omhoog.') : t('Iets rustiger terug, langzaam zakken.');
+    else if (l.tempo < b[0] * .7 && l.omhoog) klein = t('Je mag iets sneller omhoog.');
   }
-  return { soort: 'goed', tekst: '✓ Goed zo! Je pols is recht.', klein };
+  return { soort: 'goed', tekst: t('✓ Goed zo! Je pols is recht.'), klein };
 }
 
 const rad = g => g * Math.PI / 180;
@@ -687,12 +868,12 @@ function tekenLive() {
   const l = st.live && performance.now() - st.liveTijd < 3000 ? st.live : null;
   const verbonden = st.verbonden || st.demoActief;
   let status;
-  if (!verbonden) status = 'Verbind eerst met je Rewin (knop rechtsboven).';
-  else if (st.toestand === null || st.toestand === undefined) status = 'Verbonden. Wacht op je Rewin…';
-  else status = `Oefening ${st.oef} · ${TOESTAND_TEKST[st.toestand] || ''}`;
+  if (!verbonden) status = t('Verbind eerst met je Rewin (knop rechtsboven).');
+  else if (st.toestand === null || st.toestand === undefined) status = t('Verbonden. Wacht op je Rewin…');
+  else status = `${t('Oefening')} ${st.oef} · ${t(TOESTAND_TEKST[st.toestand] || '')}`;
   $('liveStatus').textContent = status;
 
-  const tip = st.toestand === 3 ? tipVoor(l) : { soort: 'info', tekst: st.toestand === 5 ? 'Klaar! Mooi gedaan. 🎉' : 'Hier zie je hoe je hand beweegt zodra je begint.', klein: '' };
+  const tip = st.toestand === 3 ? tipVoor(l) : { soort: 'info', tekst: st.toestand === 5 ? t('Klaar! Mooi gedaan. 🎉') : t('Hier zie je hoe je hand beweegt zodra je begint.'), klein: '' };
   const tipEl = $('liveTip');
   tipEl.className = 'tip ' + tip.soort;
   tipEl.innerHTML = `${tip.tekst}${tip.klein ? `<small>${tip.klein}</small>` : ''}`;
@@ -708,13 +889,13 @@ function tekenLive() {
   // ---Paneel A: de beweging---
   let a = '';
   if (oef !== 3) {
-    $('paneelATitel').textContent = 'Je arm (zijaanzicht)';
+    $('paneelATitel').textContent = t('Je arm (zijaanzicht)');
     const ex = 46, ey = 148, len = 118, hl = 48;
     a += lijn(10, ey + 8, 310, ey + 8, 'var(--lijn)', 3);
     // doelhoek
     const dl = len + hl + 4, dx = ex + dl * Math.cos(rad(doel)), dy = ey - dl * Math.sin(rad(doel));
     a += lijn(ex, ey, dx, dy, 'var(--blauw)', 1.5, 'stroke-dasharray="5 5" opacity=".6"');
-    a += `<text x="${dx + 8}" y="${dy + 4}" font-size="11" fill="var(--blauw)">doel ${doel}°</text>`;
+    a += `<text x="${dx + 8}" y="${dy + 4}" font-size="11" fill="var(--blauw)">${t('doel')} ${doel}°</text>`;
     const r0 = 46;
     a += `<path d="M${ex + r0} ${ey} A${r0} ${r0} 0 0 0 ${ex + r0 * Math.cos(rad(Math.min(hoek, 100)))} ${ey - r0 * Math.sin(rad(Math.min(hoek, 100)))}" fill="none" stroke="${hoek >= doel * .94 ? goed : 'var(--blauw)'}" stroke-width="5" stroke-linecap="round" opacity=".55"/>`;
     const wx = ex + len * Math.cos(rad(hoek)), wy = ey - len * Math.sin(rad(hoek));
@@ -727,16 +908,16 @@ function tekenLive() {
     a += `<circle cx="${ex}" cy="${ey}" r="9" fill="${huid}"/>`;
     a += `<text x="300" y="24" text-anchor="end" font-size="22" font-weight="700" fill="var(--inkt)">${hoek.toFixed(0)}°</text>`;
   } else {
-    $('paneelATitel').textContent = 'Je hand draaien (vooraanzicht)';
+    $('paneelATitel').textContent = t('Je hand draaien (vooraanzicht)');
     const cx = 160, cy = 92, r = 64;
     a += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--lijn)" stroke-width="2"/>`;
     a += `<path d="M${cx} ${cy - r} A${r} ${r} 0 0 1 ${cx + r * Math.sin(rad(Math.min(hoek, 120)))} ${cy - r * Math.cos(rad(Math.min(hoek, 120)))}" fill="none" stroke="${hoek >= doel * .94 ? goed : 'var(--blauw)'}" stroke-width="7" stroke-linecap="round" opacity=".6"/>`;
     a += lijn(cx, cy, cx + (r + 14) * Math.sin(rad(doel)), cy - (r + 14) * Math.cos(rad(doel)), 'var(--blauw)', 1.5, 'stroke-dasharray="5 5" opacity=".6"');
-    a += `<text x="${cx + r + 18}" y="${cy + 4}" font-size="11" fill="var(--blauw)">doel ${doel}°</text>`;
+    a += `<text x="${cx + r + 18}" y="${cy + 4}" font-size="11" fill="var(--blauw)">${t('doel')} ${doel}°</text>`;
     const s = Math.sin(rad(hoek)), c = Math.cos(rad(hoek));
     a += lijn(cx - 44 * s, cy + 44 * c, cx + 44 * s, cy - 44 * c, huid, 24);
     a += `<circle cx="${cx + 52 * s - 10 * c}" cy="${cy - 52 * c - 10 * s}" r="8" fill="${huid}"/>`;
-    a += `<text x="${cx - r - 12}" y="${cy - r + 6}" text-anchor="end" font-size="11" fill="var(--zacht)">duim omhoog</text>`;
+    a += `<text x="${cx - r - 12}" y="${cy - r + 6}" text-anchor="end" font-size="11" fill="var(--zacht)">${t('duim omhoog')}</text>`;
     a += `<text x="300" y="24" text-anchor="end" font-size="22" font-weight="700" fill="var(--inkt)">${hoek.toFixed(0)}°</text>`;
   }
   $('paneelA').innerHTML = a;
@@ -755,51 +936,107 @@ function tekenLive() {
     s += `<text x="8" y="92" font-size="16" font-weight="700" fill="${isFout ? fout : 'var(--inkt)'}">${Math.abs(graden).toFixed(0)}°</text>`;
     return s;
   };
-  $('paneelB').innerHTML = pols(pitch, pitchFout, 'omhoog', 'omlaag', false);
-  $('paneelC').innerHTML = pols(yaw, yawFout, 'duimkant', 'pinkkant', true);
+  $('paneelB').innerHTML = pols(pitch, pitchFout, t('omhoog'), t('omlaag'), false);
+  $('paneelC').innerHTML = pols(yaw, yawFout, t('duimkant'), t('pinkkant'), true);
 
   $('lHerh').textContent = `${st.herhLive}/10`;
   $('lHoek').textContent = `${hoek.toFixed(0)}°`;
   $('lTempo').textContent = l && l.tempo > .5 ? l.tempo.toFixed(0) : '–';
-  $('afwLog').innerHTML = st.afwLog.length ? '<b>Laatste correcties:</b><br>' + st.afwLog.join('<br>') : '';
+  $('afwLog').innerHTML = st.afwLog.length ? `<b>${t('Laatste correcties:')}</b><br>` + st.afwLog.join('<br>') : '';
 }
 
 // =====================================================================================
 //  SPELLEN
-//   ballon: alle oefeningen   · lift: oefening 1 (duim omhoog)
-//   ramen:  oefening 2 (palm naar beneden, trekker)   · molen: oefening 3 (hand draaien)
+//   ballon: alle oefeningen
+//   oefening 1 (duim omhoog, arm optillen):        lift, cocktail
+//   oefening 2 (handpalm omlaag, arm optillen):    ramen, slot (gokkast, speelgeld)
+//   oefening 3 (hand draaien):                     molen, dier (hond/kat aaien)
 // =====================================================================================
 const SPELLEN = {
-  ballon: { oef: 0, uitleg: 'Til je arm op (of draai je pols) om de ballon naar de ster te laten vliegen. Kom je rustig terug met een rechte pols, dan groeit er een bloem. Een gouden bloem betekent: de hele herhaling netjes!' },
-  lift:   { oef: 1, uitleg: 'Je staat langs de weg. Til je arm op met je duim omhoog: dan stopt er een auto. Laat je arm rustig zakken, dan stap je in en rijd je naar de volgende stad. Bleef je pols recht, dan is het een nette rit ⭐.' },
-  ramen:  { oef: 2, uitleg: 'Je hand is de trekker. Til je arm op met je handpalm naar beneden om een baan van het beslagen raam droog te trekken. Na 10 keer is het raam schoon en zie je het uitzicht. Met een kromme pols blijven er strepen achter.' },
-  molen:  { oef: 3, uitleg: 'Draai je hand van duim omhoog naar plat op tafel en weer terug. Zo laat je de molen draaien. Elke herhaling maalt een zak meel; met een rechte pols wordt het een gouden zak.' }
+  ballon:   { oef: 0, uitleg: 'Til je arm op (of draai je pols) om de ballon naar de ster te laten vliegen. Kom je rustig terug met een rechte pols, dan groeit er een bloem. Een gouden bloem betekent: de hele herhaling netjes!' },
+  lift:     { oef: 1, uitleg: 'Je staat langs de weg. Til je arm op met je duim omhoog: dan stopt er een auto. Laat je arm rustig zakken, dan stap je in en rijd je naar een willekeurige nieuwe plek. Bleef je pols recht, dan is het een nette rit ⭐.' },
+  cocktail: { oef: 1, uitleg: 'Je staat achter de bar. Til je arm op en neer met je duim omhoog om de shaker te shaken. Elke herhaling is een cocktail voor de volgende klant, en iedereen bestelt iets anders. Met een rechte pols krijg je fooi ⭐.' },
+  ramen:    { oef: 2, uitleg: 'Je hand is de trekker. Til je arm op met je handpalm naar beneden om een baan van het beslagen raam droog te trekken. Na 10 keer is het raam schoon en zie je het uitzicht, elke keer een ander. Met een kromme pols blijven er strepen achter.' },
+  slot:     { oef: 2, uitleg: 'Til je arm op met je handpalm naar beneden om aan de hendel te trekken. Kom je rustig terug, dan stoppen de rollen. Drie dezelfde = winst. Gemiddeld win je 1 op de 4 keer, helemaal willekeurig. Met een rechte pols krijg je dubbele munten. (Alleen speelgeld!)' },
+  molen:    { oef: 3, uitleg: 'Draai je hand van duim omhoog naar plat op tafel en weer terug. Zo laat je de molen draaien. Elke herhaling maalt een zak meel; met een rechte pols wordt het een gouden zak.' },
+  dier:     { oef: 3, uitleg: 'Draai je hand van duim omhoog naar plat op tafel om het dier over zijn rug te aaien. Met een rechte pols is het een fijne aai en loopt het liefdesbalkje vol. Gaat het niet netjes, dan is het een te harde tik en schrikt het dier. Krijg jij het balkje vol?' }
 };
-const AUTO_SPEL = { 1: 'lift', 2: 'ramen', 3: 'molen' };
-const STEDEN = ['Delft', 'Leiden', 'Gouda', 'Utrecht', 'Haarlem', 'Zandvoort', 'Amsterdam', 'Alkmaar', 'Den Helder', 'Texel'];
+const AUTO_SPELLEN = { 1: ['lift', 'cocktail'], 2: ['ramen', 'slot'], 3: ['molen', 'dier'] };
 if (typeof inst.beste !== 'object' || inst.beste === null) inst.beste = { ballon: +inst.beste || 0 };
 if (!inst.spel) inst.spel = 'auto';
 
-function actiefSpel() { return inst.spel === 'auto' ? (AUTO_SPEL[st.oef] || 'ballon') : inst.spel; }
+// Echt willekeurig (crypto), en niet steeds hetzelfde riedeltje: 'kiesNieuw' vermijdt de laatste paar keuzes
+function rnd() { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] / 4294967296; }
+const kies = lijst => lijst[Math.floor(rnd() * lijst.length)];
+function kiesNieuw(lijst, recent, n) {
+  let opties = lijst.filter(x => !recent.includes(x));
+  if (!opties.length) opties = lijst;
+  const k = kies(opties);
+  recent.push(k); while (recent.length > n) recent.shift();
+  return k;
+}
+
+function actiefSpel() {
+  if (inst.spel !== 'auto') return inst.spel;
+  const opties = AUTO_SPELLEN[st.oef];
+  if (!opties) return 'ballon';
+  if (!spel.autoKeuze[st.oef]) spel.autoKeuze[st.oef] = kies(opties);   // per ronde willekeurig een van de twee
+  return spel.autoKeuze[st.oef];
+}
+
+const PLAATSEN = [
+  ['Delft', 'stad'], ['Leiden', 'stad'], ['Gouda', 'stad'], ['Utrecht', 'stad'], ['Haarlem', 'stad'], ['Amsterdam', 'stad'],
+  ['Rotterdam', 'stad'], ['Den Bosch', 'stad'], ['Maastricht', 'stad'], ['Groningen', 'stad'], ['Zwolle', 'stad'], ['Nijmegen', 'stad'],
+  ['Eindhoven', 'stad'], ['Breda', 'stad'], ['Antwerpen', 'stad'], ['Brugge', 'stad'], ['Arnhem', 'stad'], ['Leeuwarden', 'stad'],
+  ['Zandvoort', 'strand'], ['Scheveningen', 'strand'], ['Noordwijk', 'strand'], ['Katwijk', 'strand'], ['Domburg', 'strand'],
+  ['Texel', 'strand'], ['Ameland', 'strand'], ['Schiermonnikoog', 'strand'], ['Cadzand', 'strand'],
+  ['Veluwe', 'bos'], ['Apeldoorn', 'bos'], ['Drenthe', 'bos'], ['Utrechtse Heuvelrug', 'bos'], ['Hoge Kempen', 'bos'],
+  ['Ardennen', 'berg'], ['Valkenburg', 'berg'], ['Vaals', 'berg'], ['Eifel', 'berg'],
+  ['Kinderdijk', 'polder'], ['Zaanse Schans', 'polder'], ['Keukenhof', 'polder'], ['Beemster', 'polder'], ['Schermer', 'polder'],
+  ['Volendam', 'haven'], ['Urk', 'haven'], ['Harlingen', 'haven'], ['Den Helder', 'haven'], ['Vlissingen', 'haven'],
+  ['Giethoorn', 'dorp'], ['Marken', 'dorp'], ['Edam', 'dorp'], ['Bourtange', 'dorp'], ['Hindeloopen', 'dorp'], ['Thorn', 'dorp']
+].map(([n, t]) => ({ n, t }));
+const UITZICHTEN = ['zee', 'tulpen', 'stadNacht', 'bosMeer', 'tropisch', 'sneeuw', 'noorderlicht', 'ballonnen'];
+const UITZICHT_NAAM = { zee: 'de zee 🌅', tulpen: 'de tulpenvelden 🌷', stadNacht: 'de stad bij nacht 🌃', bosMeer: 'het meer in het bos 🌲',
+  tropisch: 'een tropisch strand 🌴', sneeuw: 'de besneeuwde bergen ❄️', noorderlicht: 'het noorderlicht ✨', ballonnen: 'de luchtballonnen 🎈' };
 
 const spel = {
   hoogte: 0, herhAfw: false, klaar: false, schud: 0, tekst: '', tekstTijd: 0,
   resultaten: [],                 // per herhaling: true = netjes (pols recht gebleven)
-  groei: [],                      // ballon: groei van de bloemen
-  wolken: [],
+  groei: [],                      // groei-animatie per herhaling (bloemen, zakken)
+  wolken: [], autoKeuze: {},
   ster: true, sterPop: 0,
-  lift: { fase: 'wacht', autoX: -200, autoV: 0, kleur: '#e63946', stad: 0, km: 0, deco: -300, decoKleur: '#3d7bd9' },
-  ramen: { laag: null, uitzicht: null, w: 0, h: 0 },
-  molen: { hoek: 0, v: 0, vorigF: 0, boven: false }
+  lift: { fase: 'wacht', autoX: -200, autoV: 0, kleur: '#e63946', km: 0, deco: -300, decoKleur: '#3d7bd9', recent: [], hier: null, naar: null, decor: null, lucht: null },
+  ramen: { laag: null, uitzicht: null, w: 0, h: 0, type: null, recent: [] },
+  molen: { hoek: 0, v: 0, vorigF: 0, boven: false },
+  cocktail: { fase: 'bestellen', t0: 0, klant: null, drank: null, netjes: true, recent: [], gemaakt: [], boven: false },
+  slot: { rollen: [0, 1, 2], draait: false, stops: [], uitkomst: null, munten: 0, winsten: 0, t0: 0, boven: false, regen: [] },
+  dier: { soort: 'hond', naam: 'Max', vacht: '#c8894e', liefde: 0, reactie: null, t0: 0, harten: [] }
 };
-for (let i = 0; i < 5; i++) spel.wolken.push({ x: Math.random(), y: .08 + Math.random() * .45, s: .6 + Math.random() * .7, v: .006 + Math.random() * .01 });
-const AUTOKLEUREN = ['#e63946', '#2a9d8f', '#f4a261', '#7b5ea7', '#3d7bd9', '#ffb703'];
+for (let i = 0; i < 5; i++) spel.wolken.push({ x: rnd(), y: .08 + rnd() * .45, s: .6 + rnd() * .7, v: .006 + rnd() * .01 });
+const AUTOKLEUREN = ['#e63946', '#2a9d8f', '#f4a261', '#7b5ea7', '#3d7bd9', '#ffb703', '#264653', '#ef476f'];
+
+function liftNieuwePlek(L) {
+  L.hier = L.naar || kiesNieuw(PLAATSEN, L.recent, 12);
+  L.naar = kiesNieuw(PLAATSEN.filter(p => p !== L.hier), L.recent, 12);
+  L.decor = maakDecor(L.hier.t);
+  L.lucht = kies([['#7cc4ff', '#dff2ff'], ['#ffb27a', '#ffe7c2'], ['#8fb8ff', '#e6eeff'], ['#6fb7e8', '#d9f1ff'], ['#9ad0ff', '#fff3d6']]);
+}
 
 function spelNieuweRonde() {
+  // alleen opnieuw loten als er echt een ronde gespeeld is (niet tussen 'baseline' en 'start' in)
+  const opnieuw = spel.resultaten.length > 0 || spel.klaar || !spel.ramen.type;
   spel.resultaten = []; spel.groei = []; spel.ster = true; spel.klaar = false; spel.herhAfw = false;
-  spel.lift.fase = 'wacht';
-  spel.ramen.laag = null;          // nieuw beslagen raam
+  if (!opnieuw) { spelScore(); return; }
+  spel.autoKeuze = {};
+  spel.lift.fase = 'wacht'; spel.lift.km = 0;
+  spel.ramen.laag = null; spel.ramen.uitzicht = null; spel.ramen.type = kiesNieuw(UITZICHTEN, spel.ramen.recent, 4);
   spel.molen.boven = false;
+  const C = spel.cocktail; C.fase = 'bestellen'; C.gemaakt = []; C.boven = false; cocktailNieuweKlant();
+  const S = spel.slot; S.munten = 0; S.winsten = 0; S.draait = false; S.uitkomst = null; S.boven = false;
+  const D = spel.dier; D.soort = kies(['hond', 'kat']); D.naam = kies(D.soort === 'hond' ? ['Max', 'Bobby', 'Bella', 'Sam', 'Lola', 'Rocky', 'Pip', 'Noor'] : ['Luna', 'Mimi', 'Tijger', 'Kiki', 'Simba', 'Pluis', 'Minoes', 'Gizmo']);
+  D.vacht = kies(D.soort === 'hond' ? ['#c8894e', '#3b2a20', '#e8d2a6', '#8a5a3c', '#f2f2f2'] : ['#f0a24a', '#6e6e6e', '#2b2b2b', '#e8e0d2', '#b07a4a']);
+  D.liefde = 0; D.reactie = null; D.harten = [];
   spelScore();
 }
 
@@ -808,25 +1045,44 @@ function spelBloem() {
   const netjes = !spel.herhAfw;
   spel.resultaten.push(netjes); spel.groei.push(0);
   spel.herhAfw = false; spel.ster = true; spel.molen.boven = false;
-  const n = spel.resultaten.length;
+  const n = spel.resultaten.length, nu = performance.now();
   switch (actiefSpel()) {
-    case 'ballon': spelBericht(netjes ? 'Gouden bloem! ✨' : 'Bloem! 🌸'); break;
+    case 'ballon': spelBericht(netjes ? t('Gouden bloem! ✨') : t('Bloem! 🌸')); break;
     case 'lift': {
       const L = spel.lift;
-      if (L.fase === 'wacht') { L.autoX = liftStopX(); L.kleur = AUTOKLEUREN[n % AUTOKLEUREN.length]; }
+      if (!L.naar) liftNieuwePlek(L);
+      if (L.fase === 'wacht') { L.autoX = liftStopX(); L.kleur = kies(AUTOKLEUREN); }
       L.fase = 'weg'; L.autoV = 40;
-      L.km += Math.round(6 + Math.random() * 22);
-      spelBericht(`Lift naar ${STEDEN[L.stad % STEDEN.length]}!${netjes ? ' ⭐ Nette rit' : ''}`);
+      L.km += Math.round(8 + rnd() * 70);
+      spelBericht(t('Lift naar {p}!', { p: L.naar.n }) + (netjes ? t(' ⭐ Nette rit') : ''));
       break;
     }
     case 'ramen':
       ramenKolomKlaar(n - 1, netjes);
-      spelBericht(n >= 10 ? 'Wat een uitzicht! 🌅' : netjes ? 'Mooi droog! ✨' : 'Droog, maar met strepen. Houd je pols recht.');
+      spelBericht(n >= 10 ? t('Wat een uitzicht op {u}!', { u: t(UITZICHT_NAAM[spel.ramen.type] || 'buiten') }) : netjes ? t('Mooi droog! ✨') : t('Droog, maar met strepen. Houd je pols recht.'));
       break;
     case 'molen':
       spel.molen.v += 260;
-      spelBericht(netjes ? 'Gouden zak meel! ✨' : 'Zak meel! 🌾');
+      spelBericht(netjes ? t('Gouden zak meel! ✨') : t('Zak meel! 🌾'));
       break;
+    case 'cocktail': {
+      const C = spel.cocktail;
+      if (!C.drank) cocktailNieuweKlant();
+      if (C.fase !== 'bestellen') { C.gemaakt.push({ drank: C.drank, netjes: C.netjes }); cocktailNieuweKlant(); }   // vorige meteen afronden
+      C.fase = 'gieten'; C.t0 = nu; C.netjes = netjes; C.boven = false;
+      spelBericht(t(netjes ? '{d} perfect geshaket! ⭐' : '{d}, beetje gemorst…', { d: C.drank.naam }));
+      break;
+    }
+    case 'slot': slotStop(netjes, nu); break;
+    case 'dier': {
+      const D = spel.dier;
+      D.reactie = netjes ? 'aai' : 'tik'; D.t0 = nu;
+      D.liefde = Math.max(0, Math.min(100, D.liefde + (netjes ? 12 : -6)));
+      if (netjes) for (let i = 0; i < 6; i++) D.harten.push({ x: rnd() * 80 - 40, y: 0, v: 30 + rnd() * 30, t: nu });
+      spelBericht(netjes ? (D.liefde >= 100 ? t('{n} houdt van je! 💖', { n: D.naam }) : t('{n} vindt het fijn!', { n: D.naam }) + ' ' + t(D.soort === 'hond' ? 'Woef! 🐶' : 'Prrr 🐱'))
+        : t('Au! Dat was te hard. {n} schrikt.', { n: D.naam }));
+      break;
+    }
   }
   spelScore();
 }
@@ -834,7 +1090,8 @@ function spelBloem() {
 function spelKlaar() {
   spel.klaar = true;
   const sp = actiefSpel(), goud = spel.resultaten.filter(Boolean).length;
-  if (goud > (inst.beste[sp] || 0)) { inst.beste[sp] = goud; bewaarInst(); }
+  const score = sp === 'slot' ? spel.slot.munten : sp === 'dier' ? spel.dier.liefde : goud;
+  if (score > (inst.beste[sp] || 0)) { inst.beste[sp] = score; bewaarInst(); }
   spelScore();
 }
 function spelBericht(t) { spel.tekst = t; spel.tekstTijd = performance.now(); }
@@ -842,15 +1099,19 @@ function spelBericht(t) { spel.tekst = t; spel.tekstTijd = performance.now(); }
 function spelScore() {
   const sp = actiefSpel(), n = spel.resultaten.length, goud = spel.resultaten.filter(Boolean).length;
   const tekst = {
-    ballon: `🌸 ${n}   ✨ ${goud} goud`,
-    lift: `🚗 ${n} ritjes · ${spel.lift.km} km · ⭐ ${goud}`,
-    ramen: `🪟 ${Math.min(n, 10)}/10 banen droog · ✨ ${goud}`,
-    molen: `🌾 ${n} zakken meel · ✨ ${goud} goud`
+    ballon: t('🌸 {n}   ✨ {g} goud', { n, g: goud }),
+    lift: t('🚗 {n} ritjes · {km} km · ⭐ {g}', { n, km: spel.lift.km, g: goud }),
+    cocktail: t('🍹 {n} cocktails · ⭐ {g} fooi', { n, g: goud }),
+    ramen: t('🪟 {n}/10 banen droog · ✨ {g}', { n: Math.min(n, 10), g: goud }),
+    slot: t('🪙 {m} munten · {w}/{n} gewonnen', { m: spel.slot.munten, w: spel.slot.winsten, n }),
+    molen: t('🌾 {n} zakken meel · ✨ {g} goud', { n, g: goud }),
+    dier: t('💖 {l}% liefde · {g}/{n} fijne aaien', { l: spel.dier.liefde, g: goud, n })
   }[sp];
   $('spelScore').textContent = tekst;
-  $('spelBeste').textContent = `Record: ${inst.beste[sp] || 0}${sp === 'lift' ? ' ⭐' : ' ✨'}`;
-  $('spelUitleg').textContent = SPELLEN[sp].uitleg;
-  document.querySelectorAll('#spelKeuze .chip').forEach(c => c.classList.toggle('actief', c.dataset.spel === inst.spel));
+  const eenheid = { slot: ' 🪙', dier: '% 💖', lift: ' ⭐', cocktail: ' ⭐' }[sp] || ' ✨';
+  $('spelBeste').textContent = `${t('Record')}: ${inst.beste[sp] || 0}${eenheid}`;
+  $('spelUitleg').textContent = t(SPELLEN[sp].uitleg);
+  $('spelTitel').textContent = inst.spel === 'auto' ? t('Verrassing: {s}', { s: t(SPEL_INFO[sp].naam) }) : t(SPEL_INFO[sp].naam);
 }
 
 // ---Gedeelde tekenhulpjes -------------------------------------------------------------
@@ -871,11 +1132,17 @@ function tekenWolken(W, H, dt, afw, hoogte = 1) {
     cx.beginPath(); cx.arc(x, y, s, 0, 7); cx.arc(x + s, y + 4, s * .8, 0, 7); cx.arc(x - s, y + 5, s * .7, 0, 7); cx.fill();
   }
 }
-function berichtBalk(W, t, kleur, y = 96) {
+function berichtBalk(W, t, kleur, y = berichtY()) {
   cx.font = '600 15px system-ui,sans-serif';
   const b = Math.min(W - 24, cx.measureText(t).width + 28);
   cx.fillStyle = 'rgba(255,255,255,.92)'; rondeRect(W / 2 - b / 2, y, b, 34, 12); cx.fill();
   cx.fillStyle = kleur; cx.textAlign = 'center'; cx.fillText(t, W / 2, y + 22, W - 40);
+}
+function berichtY() {
+  const sp = actiefSpel(), H = doek.clientHeight;
+  if (sp === 'slot') return Math.min(H - 48, 70 + Math.min(H - 150, 300) + 14);
+  if (sp === 'dier') return 64;
+  return 96;
 }
 function infoVak(W, H, regels) {
   cx.fillStyle = 'rgba(255,255,255,.92)'; rondeRect(W / 2 - 155, H / 2 - 56, 310, 34 + regels.length * 26, 16); cx.fill();
@@ -889,12 +1156,69 @@ function tekenSter(x, y, r, kleur) {
   cx.closePath(); cx.fill();
 }
 
+// =====================================================================================
+//  SPELMENU: de spellen als app-icoontjes, per oefening
+// =====================================================================================
+const SPEL_INFO = {
+  lift:     { naam: 'Liften',     icoon: '👍', a: '#4facfe', b: '#00c6fb' },
+  cocktail: { naam: 'Cocktails',  icoon: '🍹', a: '#f857a6', b: '#ff5858' },
+  ramen:    { naam: 'Ramen',      icoon: '🪟', a: '#43e97b', b: '#38f9d7' },
+  slot:     { naam: 'Gokkast',    icoon: '🎰', a: '#f7971e', b: '#ffd200' },
+  molen:    { naam: 'Molen',      icoon: '🌬️', a: '#30cfd0', b: '#330867' },
+  dier:     { naam: 'Aaien',      icoon: '🐶', a: '#fbc2eb', b: '#a6c1ee' },
+  ballon:   { naam: 'Ballon',     icoon: '🎈', a: '#ff9a9e', b: '#fecfef' },
+  auto:     { naam: 'Verrassing', icoon: '🎲', a: '#667eea', b: '#764ba2' }
+};
+const OEF_UITLEG = { 1: 'Arm optillen met je duim omhoog', 2: 'Arm optillen met je handpalm naar beneden', 3: 'Hand draaien: van duim omhoog naar plat' };
+let spelOpen = false, menuSig = '';
+
+function tegel(key, label, anders) {
+  const i = SPEL_INFO[key];
+  return `<button class="app${anders ? ' anders' : ''}" data-spel="${key}"><div class="ico" style="--a:${i.a};--b:${i.b}">${i.icoon}</div>` +
+    `<span>${t(i.naam)}</span>${label ? `<small>${label}</small>` : ''}</button>`;
+}
+
+function tekenSpelMenu() {
+  const verbonden = st.verbonden || st.demoActief;
+  const oef = verbonden && st.oef ? st.oef : 0;
+  const sig = `${oef}|${inst.taal}`;
+  if (sig === menuSig) return;               // niets veranderd: niet opnieuw opbouwen (anders mis je een tik)
+  menuSig = sig;
+  $('mOefBadge').textContent = oef || '?';
+  $('mOefBadge').style.background = oef ? `var(--oef${oef})` : 'var(--zacht)';
+  $('mOef').textContent = oef ? t('Oefening') + ' ' + oef : t('Nog niet verbonden');
+  $('mOefUitleg').textContent = oef ? t(OEF_UITLEG[oef]) : t('Verbind je Rewin, of kies hieronder een spel.');
+  const groep = (titel, tegels) => `<div class="groeptitel">${titel}</div><div class="appgrid">${tegels}</div>`;
+  let html = '';
+  if (oef) {
+    html += groep(t('Spellen voor oefening {n}', { n: oef }), AUTO_SPELLEN[oef].map(k => tegel(k)).join('') + tegel('auto') + tegel('ballon'));
+    html += groep(t('Andere oefeningen'), [1, 2, 3].filter(o => o !== oef).flatMap(o => AUTO_SPELLEN[o].map(k => tegel(k, t('oef {n}', { n: o }), true))).join(''));
+  } else {
+    [1, 2, 3].forEach(o => { html += groep(`${t('Oefening')} ${o} · ${t(OEF_UITLEG[o])}`, AUTO_SPELLEN[o].map(k => tegel(k)).join('')); });
+    html += groep(t('Voor elke oefening'), tegel('ballon') + tegel('auto'));
+  }
+  $('mGroepen').innerHTML = html;
+  $('mGroepen').querySelectorAll('.app').forEach(b => b.addEventListener('click', () => openSpel(b.dataset.spel)));
+}
+
+function openSpel(key) {
+  inst.spel = key; bewaarInst(); spel.ramen.laag = null;
+  spelOpen = true;
+  $('spelMenu').classList.add('verborgen'); $('spelScherm').classList.remove('verborgen');
+  spelScore(); window.scrollTo(0, 0);
+}
+function sluitSpel() {
+  spelOpen = false;
+  $('spelScherm').classList.add('verborgen'); $('spelMenu').classList.remove('verborgen');
+  menuSig = ''; tekenSpelMenu();
+}
+
 // ---Hoofdlus ---------------------------------------------------------------------------
 function spelFrame(nu) {
   const dt = Math.min(.05, (nu - vorigFrame) / 1000); vorigFrame = nu;
   requestAnimationFrame(spelFrame);
   if (huidigeTab === 'live' && nu - laatsteLiveTeken > 80) { laatsteLiveTeken = nu; tekenLive(); }   // ~12x per seconde is genoeg
-  if (huidigeTab !== 'spel') return;
+  if (huidigeTab !== 'spel' || !spelOpen) return;
 
   const dpr = window.devicePixelRatio || 1;
   const W = doek.clientWidth, H = doek.clientHeight;
@@ -914,24 +1238,23 @@ function spelFrame(nu) {
   spel.schud = afw ? Math.min(1, spel.schud + dt * 4) : Math.max(0, spel.schud - dt * 3);
   spel.groei = spel.groei.map(g => Math.min(1, g + dt * 1.6));
 
-  if (sp === 'lift') tekenLift(W, H, nu, dt, f, afw, bezig);
-  else if (sp === 'ramen') tekenRamen(W, H, nu, dt, f, afw, bezig);
-  else if (sp === 'molen') tekenMolen(W, H, nu, dt, f, afw, bezig, l);
-  else tekenBallon(W, H, nu, dt, f, afw, bezig);
+  const teken = { lift: tekenLift, cocktail: tekenCocktail, ramen: tekenRamen, slot: tekenSlot, molen: tekenMolen, dier: tekenDier }[sp] || tekenBallon;
+  teken(W, H, nu, dt, f, afw, bezig, l);
 
   // teksten bovenop
   cx.textAlign = 'center';
   const n = spel.resultaten.length, goud = spel.resultaten.filter(Boolean).length;
   if (verkeerd) {
     cx.fillStyle = 'rgba(22,35,58,.35)'; cx.fillRect(0, 0, W, H);
-    infoVak(W, H, [`Dit spel hoort bij oefening ${nodig}`, `Druk op de oefeningknop van je`, `Rewin tot lampje ${nodig} brandt.`]);
+    infoVak(W, H, [t('Dit spel hoort bij oefening {n}', { n: nodig }), t('Druk op de oefeningknop van je'), t('Rewin tot lampje {n} brandt.', { n: nodig })]);
   } else if (!bezig) {
-    const regels = spel.klaar ? ['Klaar! 🎉', { ballon: `${n} bloemen, ${goud} goud`, lift: `${n} ritjes, ${spel.lift.km} km`, ramen: 'Het raam is schoon!', molen: `${n} zakken meel, ${goud} goud` }[sp]]
-      : !verbonden ? ['Verbind je Rewin', '(knop rechtsboven)']
-      : st.toestand === 2 ? ['Druk op start', 'om te beginnen'] : ['Leg je arm recht op tafel', 'en druk op start'];
+    const pr = { n, g: goud, km: spel.lift.km, m: spel.slot.munten, d: spel.dier.naam, l: spel.dier.liefde };
+    const regels = spel.klaar ? [t('Klaar! 🎉'), t({ ballon: '{n} bloemen, {g} goud', lift: '{n} ritjes, {km} km', ramen: 'Het raam is schoon!', molen: '{n} zakken meel, {g} goud', cocktail: '{n} cocktails, {g}× fooi', slot: '{m} munten gewonnen', dier: '{d}: {l}% liefde 💖' }[sp], pr)]
+      : !verbonden ? [t('Verbind je Rewin'), t('(knop rechtsboven)')]
+      : st.toestand === 2 ? [t('Druk op start'), t('om te beginnen')] : [t('Leg je arm recht op tafel'), t('en druk op start')];
     infoVak(W, H, regels);
   } else if (!l.uit) {
-    berichtBalk(W, l.oef === 3 ? 'Draai je hand één keer rustig om' : 'Til je arm één keer rustig op', '#16233a');
+    berichtBalk(W, t(l.oef === 3 ? 'Draai je hand één keer rustig om' : 'Til je arm één keer rustig op'), '#16233a');
   } else if (afw) {
     berichtBalk(W, tipVoor(l).tekst.replace(/^[^A-Za-zÀ-ÿ]+/, '').split('.')[0] + '!', '#b3261e');
   } else if (nu - spel.tekstTijd < 1800) {
@@ -957,7 +1280,7 @@ function tekenBallon(W, H, nu, dt, f, afw, bezig) {
   });
 
   const boven = 58, onder = grond - 50, sterY = boven;
-  if (bezig && spel.ster && f >= .875) { spel.ster = false; spel.sterPop = 1; spelBericht('Ster! Nu rustig terug naar beneden.'); }
+  if (bezig && spel.ster && f >= .875) { spel.ster = false; spel.sterPop = 1; spelBericht(t('Ster! Nu rustig terug naar beneden.')); }
   if (spel.ster && !spel.klaar) tekenSter(W / 2, sterY, 18 * (1 + .08 * Math.sin(nu / 200)), '#ffd23f');
   else if (spel.sterPop > 0) {
     spel.sterPop -= dt * 1.5;
@@ -1003,48 +1326,136 @@ function tekenAuto(x, y, kleur, metPersoon) {
   for (const wx of [x + 30, x + 100]) { cx.beginPath(); cx.arc(wx, y - 11, 11, 0, 7); cx.fill(); cx.fillStyle = '#999'; cx.beginPath(); cx.arc(wx, y - 11, 4, 0, 7); cx.fill(); cx.fillStyle = '#222'; }
 }
 
+// Achtergrond van de plek waar je nu staat (willekeurig opgebouwd)
+function maakDecor(type) {
+  const d = { type, items: [] };
+  const n = { stad: 11, strand: 5, bos: 16, berg: 5, polder: 6, haven: 4, dorp: 7 }[type] || 6;
+  for (let i = 0; i < n; i++) d.items.push({ x: (i + rnd() * .6) / n, a: rnd(), b: rnd(), c: rnd() });
+  d.molenX = .15 + rnd() * .7;
+  return d;
+}
+
+function tekenDecor(W, horizon, d) {
+  const soort = d.type;
+  if (soort === 'strand' || soort === 'haven') {                 // zee aan de horizon
+    cx.fillStyle = '#5bb2e0'; cx.fillRect(0, horizon - 46, W, 46);
+    cx.fillStyle = 'rgba(255,255,255,.5)'; for (let x = 10; x < W; x += 40) cx.fillRect(x, horizon - 30 + (x % 3) * 6, 16, 2);
+  }
+  if (soort === 'strand') {
+    cx.fillStyle = '#ecd9a0'; cx.beginPath(); cx.ellipse(W * .3, horizon + 4, W * .5, 30, 0, Math.PI, 0); cx.fill();
+    cx.fillStyle = '#e0c886'; cx.beginPath(); cx.ellipse(W * .85, horizon + 4, W * .4, 24, 0, Math.PI, 0); cx.fill();
+    d.items.forEach(p => {                                // parasols
+      const x = p.x * W, y = horizon - 6;
+      cx.strokeStyle = '#555'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x, y - 26); cx.stroke();
+      cx.fillStyle = kleurUit(p.a, ['#ff595e', '#ffca3a', '#1982c4', '#8ac926', '#ff7eb6']);
+      cx.beginPath(); cx.arc(x, y - 26, 14, Math.PI, 0); cx.fill();
+    });
+  } else if (soort === 'haven') {
+    d.items.forEach(p => {                                // bootjes
+      const x = p.x * W, y = horizon - 14;
+      cx.fillStyle = kleurUit(p.a, ['#c0392b', '#2c3e50', '#16a085', '#f39c12']);
+      cx.beginPath(); cx.moveTo(x - 22, y); cx.lineTo(x + 22, y); cx.lineTo(x + 15, y + 10); cx.lineTo(x - 15, y + 10); cx.fill();
+      cx.strokeStyle = '#444'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x, y - 34 - p.b * 14); cx.stroke();
+      cx.fillStyle = '#fff'; cx.beginPath(); cx.moveTo(x + 2, y - 4); cx.lineTo(x + 2, y - 30 - p.b * 12); cx.lineTo(x + 18, y - 6); cx.fill();
+    });
+    cx.fillStyle = '#7fbf6a'; cx.fillRect(0, horizon - 2, W, 4);
+  } else if (soort === 'stad') {
+    d.items.forEach(p => {
+      const w = 26 + p.a * 26, h = 40 + p.b * 100, x = p.x * W - w / 2;
+      cx.fillStyle = kleurUit(p.c, ['#9aa6b8', '#b3a59a', '#8e9aad', '#c2b4a3', '#a7b6c6']);
+      cx.fillRect(x, horizon - h, w, h);
+      cx.fillStyle = 'rgba(255,255,255,.55)';
+      for (let yy = horizon - h + 8; yy < horizon - 8; yy += 12) for (let xx = x + 5; xx < x + w - 6; xx += 9) cx.fillRect(xx, yy, 4, 6);
+    });
+  } else if (soort === 'dorp') {
+    d.items.forEach(p => {
+      const w = 30 + p.a * 16, h = 26 + p.b * 14, x = p.x * W - w / 2;
+      cx.fillStyle = kleurUit(p.c, ['#b5553c', '#c9a27e', '#8c4b3a', '#e8d8b0']); cx.fillRect(x, horizon - h, w, h);
+      cx.fillStyle = '#5a2e22'; cx.beginPath(); cx.moveTo(x - 3, horizon - h); cx.lineTo(x + w / 2, horizon - h - 20); cx.lineTo(x + w + 3, horizon - h); cx.fill();
+      cx.fillStyle = '#fff6c8'; cx.fillRect(x + w / 2 - 4, horizon - h + 8, 8, 8);
+    });
+    const kx = W * .5;                                    // kerktoren
+    cx.fillStyle = '#9a8f84'; cx.fillRect(kx - 10, horizon - 90, 20, 90);
+    cx.fillStyle = '#4b4f5a'; cx.beginPath(); cx.moveTo(kx - 12, horizon - 90); cx.lineTo(kx, horizon - 130); cx.lineTo(kx + 12, horizon - 90); cx.fill();
+  } else if (soort === 'bos') {
+    d.items.forEach(p => {
+      const x = p.x * W, s = .7 + p.a * .7;
+      cx.fillStyle = '#6b4a2f'; cx.fillRect(x - 3, horizon - 14 * s, 6, 14 * s);
+      cx.fillStyle = p.b > .5 ? '#2f7d4a' : '#3d9a57';
+      if (p.c > .5) { cx.beginPath(); cx.moveTo(x - 18 * s, horizon - 12 * s); cx.lineTo(x, horizon - 70 * s); cx.lineTo(x + 18 * s, horizon - 12 * s); cx.fill(); }
+      else { cx.beginPath(); cx.arc(x, horizon - 34 * s, 20 * s, 0, 7); cx.fill(); }
+    });
+  } else if (soort === 'berg') {
+    d.items.forEach(p => {
+      const x = p.x * W, h = 80 + p.a * 90, b = 70 + p.b * 60;
+      cx.fillStyle = kleurUit(p.c, ['#7d8aa3', '#8d97ab', '#6f7d96']);
+      cx.beginPath(); cx.moveTo(x - b, horizon); cx.lineTo(x, horizon - h); cx.lineTo(x + b, horizon); cx.fill();
+      cx.fillStyle = '#fff'; cx.beginPath(); cx.moveTo(x - b * .22, horizon - h * .78); cx.lineTo(x, horizon - h); cx.lineTo(x + b * .22, horizon - h * .78); cx.fill();
+    });
+  } else if (soort === 'polder') {
+    cx.fillStyle = '#9fd68a'; cx.fillRect(0, horizon - 20, W, 20);
+    cx.strokeStyle = '#6fb6e0'; cx.lineWidth = 4; cx.beginPath(); cx.moveTo(0, horizon - 8); cx.lineTo(W, horizon - 12); cx.stroke();
+    const mx = d.molenX * W;                              // molentje
+    cx.fillStyle = '#4b3b33'; cx.beginPath(); cx.moveTo(mx - 12, horizon - 16); cx.lineTo(mx - 6, horizon - 66); cx.lineTo(mx + 6, horizon - 66); cx.lineTo(mx + 12, horizon - 16); cx.fill();
+    cx.strokeStyle = '#f5f5f5'; cx.lineWidth = 4;
+    const a = performance.now() / 900;
+    for (let i = 0; i < 4; i++) { cx.beginPath(); cx.moveTo(mx, horizon - 64); cx.lineTo(mx + 34 * Math.cos(a + i * Math.PI / 2), horizon - 64 + 34 * Math.sin(a + i * Math.PI / 2)); cx.stroke(); }
+    d.items.forEach(p => {                                // koeien
+      const x = p.x * W, y = horizon - 22 + p.a * 6;
+      cx.fillStyle = '#fff'; cx.fillRect(x - 9, y - 6, 18, 9);
+      cx.fillStyle = '#222'; cx.fillRect(x - 4, y - 6, 6, 5); cx.fillRect(x + 7, y - 9, 5, 5);
+      cx.fillRect(x - 8, y + 3, 2, 4); cx.fillRect(x + 6, y + 3, 2, 4);
+    });
+  }
+}
+const kleurUit = (r, lijst) => lijst[Math.floor(r * lijst.length) % lijst.length];
+
 function tekenLift(W, H, nu, dt, f, afw, bezig) {
   const L = spel.lift;
-  tekenLucht(W, H, afw, ['#7cc4ff', '#ffb27a', '#8fb8ff', '#79d0e8'][L.stad % 4]);
+  if (!L.hier) liftNieuwePlek(L);
+  tekenLucht(W, H, afw, L.lucht[0], L.lucht[1]);
   tekenZon(W * .15, H * .12, afw);
   tekenWolken(W, H, dt, afw, .7);
   const weg = H * .58, wegH = 64;
-  // heuvels (andere kleur per stad)
-  const heuvel = [['#9bd48f', '#7cc26f'], ['#c9d98a', '#a9c46a'], ['#8fcfb0', '#6db892'], ['#b8d68f', '#93c06a']][L.stad % 4];
-  cx.fillStyle = heuvel[0]; cx.beginPath(); cx.ellipse(W * .25, weg + 10, W * .45, 90, 0, Math.PI, 0); cx.fill();
-  cx.fillStyle = heuvel[1]; cx.beginPath(); cx.ellipse(W * .85, weg + 10, W * .5, 70, 0, Math.PI, 0); cx.fill();
+  cx.fillStyle = L.hier.t === 'strand' ? '#d9c48a' : '#8fcf7c'; cx.fillRect(0, weg - 6, W, 6);
+  tekenDecor(W, weg - 4, L.decor);
+  // plaatsnaambord van waar je nu bent
+  cx.fillStyle = '#fff'; rondeRect(10, weg - 30, 4 + L.hier.n.length * 7.2, 20, 4); cx.fill();
+  cx.strokeStyle = '#c0392b'; cx.lineWidth = 2; cx.stroke();
+  cx.fillStyle = '#16233a'; cx.font = '700 11px system-ui,sans-serif'; cx.textAlign = 'left'; cx.fillText(L.hier.n, 14, weg - 16);
   // weg
   cx.fillStyle = '#5b6573'; cx.fillRect(0, weg, W, wegH);
   cx.strokeStyle = '#f5f5f5'; cx.lineWidth = 3; cx.setLineDash([22, 18]);
   cx.beginPath(); cx.moveTo(0, weg + wegH / 2); cx.lineTo(W, weg + wegH / 2); cx.stroke(); cx.setLineDash([]);
-  cx.fillStyle = '#7fcf6a'; cx.fillRect(0, weg + wegH, W, H - weg - wegH);
+  cx.fillStyle = L.hier.t === 'strand' ? '#e6d49c' : '#7fcf6a'; cx.fillRect(0, weg + wegH, W, H - weg - wegH);
 
-  // bord met de volgende stad
+  // richtingbord met de volgende (willekeurige) bestemming
   const px = W * .62, voet = Math.min(H - 14, weg + wegH + 96);
+  const naam = L.naar.n, bw = Math.max(92, 30 + naam.length * 8);
   cx.fillStyle = '#7a5a3a'; cx.fillRect(px + 74, voet - 58, 5, 58);
-  cx.fillStyle = '#1f6f43'; rondeRect(px + 40, voet - 84, 92, 30, 6); cx.fill();
+  cx.fillStyle = '#1f6f43'; rondeRect(Math.min(W - bw - 6, px + 86 - bw / 2), voet - 84, bw, 30, 6); cx.fill();
   cx.fillStyle = '#fff'; cx.font = '700 13px system-ui,sans-serif'; cx.textAlign = 'center';
-  cx.fillText('➜ ' + STEDEN[L.stad % STEDEN.length], px + 86, voet - 64, 84);
+  cx.fillText('➜ ' + naam, Math.min(W - bw - 6, px + 86 - bw / 2) + bw / 2, voet - 64, bw - 8);
 
   // langsrijdende auto's (versiering, stoppen niet)
   const wielY = weg + wegH - 8;
   if (L.fase === 'wacht') {
     L.deco += 240 * dt;
-    if (L.deco > W + 160) { L.deco = -300 - Math.random() * 500; L.decoKleur = AUTOKLEUREN[Math.floor(Math.random() * AUTOKLEUREN.length)]; }
+    if (L.deco > W + 160) { L.deco = -300 - rnd() * 500; L.decoKleur = kies(AUTOKLEUREN); }
     tekenAuto(L.deco, weg + 26, L.decoKleur, true);
     if (bezig && f >= .875) {
-      L.fase = 'komt'; L.autoX = -150; L.kleur = AUTOKLEUREN[(spel.resultaten.length + 1) % AUTOKLEUREN.length];
-      spelBericht('Er stopt een auto! Laat je arm nu rustig zakken.');
+      L.fase = 'komt'; L.autoX = -150; L.kleur = kies(AUTOKLEUREN);
+      spelBericht(t('Er stopt een auto naar {p}! Laat je arm rustig zakken.', { p: L.naar.n }));
     }
   }
   const stopX = liftStopX();
   if (L.fase === 'komt') { L.autoX += Math.max(50, (stopX - L.autoX) * 2.4) * dt; if (L.autoX >= stopX - 1) { L.autoX = stopX; L.fase = 'staat'; } }
-  if (L.fase === 'weg') { L.autoV += 320 * dt; L.autoX += L.autoV * dt; if (L.autoX > W + 170) { L.fase = 'wacht'; L.stad++; L.deco = -400; } }
+  if (L.fase === 'weg') { L.autoV += 320 * dt; L.autoX += L.autoV * dt; if (L.autoX > W + 170) { L.fase = 'wacht'; liftNieuwePlek(L); L.deco = -400; } }
   if (L.fase !== 'wacht') {
     tekenAuto(L.autoX, wielY, L.kleur, L.fase === 'weg');
     if (afw && L.fase !== 'weg') {
       cx.fillStyle = '#16233a'; cx.font = '700 15px system-ui,sans-serif'; cx.textAlign = 'left';
-      cx.fillText('toet toet! 📯', L.autoX + 90, wielY - 78);
+      cx.fillText(t('toet toet! 📯'), L.autoX + 90, wielY - 78);
     }
   }
 
@@ -1076,23 +1487,146 @@ function tekenLift(W, H, nu, dt, f, afw, bezig) {
 // =====================================================================================
 function ramenMaten(W, H) { const x = 22, y = 22, w = W - 44, h = H - 92; return { x, y, w, h, kw: w / 10 }; }
 
-function maakUitzicht(w, h) {
+// Uitzicht achter het raam: elke ronde willekeurig een ander plaatje
+function maakUitzicht(w, h, type) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
-  const lucht = g.createLinearGradient(0, 0, 0, h * .6);
-  lucht.addColorStop(0, '#5aa7ff'); lucht.addColorStop(.55, '#ffb38a'); lucht.addColorStop(1, '#ffd98f');
-  g.fillStyle = lucht; g.fillRect(0, 0, w, h);
-  g.fillStyle = '#fff1b8'; g.beginPath(); g.arc(w * .68, h * .5, 34, 0, 7); g.fill();
-  const berg = (kleur, punten) => { g.fillStyle = kleur; g.beginPath(); g.moveTo(0, h * .62); punten.forEach(([px, py]) => g.lineTo(px * w, py * h)); g.lineTo(w, h * .62); g.closePath(); g.fill(); };
-  berg('#8f7fb8', [[.1, .36], [.25, .5], [.42, .28], [.6, .5], [.78, .34], [.95, .48]]);
-  berg('#6b5f98', [[.18, .5], [.34, .42], [.5, .56], [.7, .45], [.88, .55]]);
-  const zee = g.createLinearGradient(0, h * .6, 0, h);
-  zee.addColorStop(0, '#3f8fd6'); zee.addColorStop(1, '#1d5e9e');
-  g.fillStyle = zee; g.fillRect(0, h * .6, w, h * .4);
-  g.fillStyle = 'rgba(255,240,180,.6)'; for (let i = 0; i < 9; i++) g.fillRect(w * .68 - 30 + Math.random() * 60, h * (.63 + i * .035), 18 + Math.random() * 30, 2);
-  g.fillStyle = '#fff'; g.beginPath(); g.moveTo(w * .25, h * .78); g.lineTo(w * .25, h * .66); g.lineTo(w * .31, h * .77); g.closePath(); g.fill();
-  g.fillStyle = '#7a4a2a'; g.fillRect(w * .21, h * .78, w * .12, 6);
-  g.strokeStyle = '#3a2a4a'; g.lineWidth = 2;
-  for (const [bx, by] of [[.2, .2], [.26, .16], [.31, .22]]) { g.beginPath(); g.moveTo(bx * w - 7, by * h); g.quadraticCurveTo(bx * w - 3, by * h - 5, bx * w, by * h); g.quadraticCurveTo(bx * w + 3, by * h - 5, bx * w + 7, by * h); g.stroke(); }
+  const verloop = (y0, y1, kleuren) => { const v = g.createLinearGradient(0, y0, 0, y1); kleuren.forEach((k, i) => v.addColorStop(i / (kleuren.length - 1), k)); return v; };
+  const rondje = (x, y, r, k) => { g.fillStyle = k; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+  const bergen = (kleur, basis, punten) => { g.fillStyle = kleur; g.beginPath(); g.moveTo(0, basis); punten.forEach(([px, py]) => g.lineTo(px * w, py * h)); g.lineTo(w, basis); g.lineTo(w, h); g.lineTo(0, h); g.closePath(); g.fill(); };
+  const den = (x, y, s, k, sneeuw) => {
+    g.fillStyle = '#5a3d28'; g.fillRect(x - 2 * s, y - 8 * s, 4 * s, 8 * s);
+    g.fillStyle = k; g.beginPath(); g.moveTo(x - 14 * s, y - 6 * s); g.lineTo(x, y - 50 * s); g.lineTo(x + 14 * s, y - 6 * s); g.fill();
+    if (sneeuw) { g.fillStyle = '#fff'; g.beginPath(); g.moveTo(x - 6 * s, y - 34 * s); g.lineTo(x, y - 50 * s); g.lineTo(x + 6 * s, y - 34 * s); g.fill(); }
+  };
+  const r = rnd;
+  switch (type) {
+    case 'tulpen': {
+      g.fillStyle = verloop(0, h * .45, ['#4aa3ff', '#bfe3ff']); g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 4; i++) { const x = r() * w, y = 20 + r() * h * .2; rondje(x, y, 16, '#fff'); rondje(x + 16, y + 4, 12, '#fff'); rondje(x - 14, y + 5, 11, '#fff'); }
+      const hor = h * .45; g.fillStyle = '#7cc46a'; g.fillRect(0, hor, w, h - hor);
+      const kleuren = ['#e63946', '#ffd60a', '#ff70a6', '#9b5de5', '#ff8c42'];
+      const n = 10;
+      for (let i = 0; i < n; i++) {                       // rijen in perspectief naar het midden
+        const x0 = (i / n) * w * 2.4 - w * .7, x1 = ((i + 1) / n) * w * 2.4 - w * .7;
+        g.fillStyle = i % 2 ? kleuren[i % kleuren.length] : '#5ea84f';
+        g.beginPath(); g.moveTo(w / 2 + (i / n - .5) * w * .3, hor); g.lineTo(w / 2 + ((i + 1) / n - .5) * w * .3, hor); g.lineTo(x1, h); g.lineTo(x0, h); g.fill();
+      }
+      const mx = w * (.2 + r() * .6), my = hor + 4;          // molen
+      g.fillStyle = '#4b3b33'; g.beginPath(); g.moveTo(mx - 16, my); g.lineTo(mx - 8, my - 70); g.lineTo(mx + 8, my - 70); g.lineTo(mx + 16, my); g.fill();
+      g.strokeStyle = '#fafafa'; g.lineWidth = 5; const a = r() * 2;
+      for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo(mx, my - 68); g.lineTo(mx + 46 * Math.cos(a + i * Math.PI / 2), my - 68 + 46 * Math.sin(a + i * Math.PI / 2)); g.stroke(); }
+      break;
+    }
+    case 'stadNacht': {
+      g.fillStyle = verloop(0, h, ['#0b1030', '#25306b', '#3b3f8f']); g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 90; i++) rondje(r() * w, r() * h * .5, r() * 1.4 + .3, 'rgba(255,255,255,.85)');
+      rondje(w * (.15 + r() * .7), h * .14, 22, '#fff4c2');
+      const water = h * .72;
+      let x = -10;
+      while (x < w) {
+        const bw = 26 + r() * 40, bh = 60 + r() * h * .38;
+        g.fillStyle = r() > .5 ? '#151a3d' : '#1c2250'; g.fillRect(x, water - bh, bw, bh);
+        for (let yy = water - bh + 8; yy < water - 6; yy += 11) for (let xx = x + 4; xx < x + bw - 5; xx += 8) if (r() > .45) { g.fillStyle = r() > .3 ? '#ffd56b' : '#ffe9a8'; g.fillRect(xx, yy, 4, 6); }
+        x += bw + 2;
+      }
+      g.fillStyle = '#121a45'; g.fillRect(0, water, w, h - water);
+      g.save(); g.globalAlpha = .35; g.translate(0, water * 2); g.scale(1, -1); g.drawImage(c, 0, 0, w, water, 0, 0, w, water); g.restore();
+      g.fillStyle = 'rgba(255,214,107,.25)'; for (let i = 0; i < 30; i++) g.fillRect(r() * w, water + r() * (h - water), 10 + r() * 20, 2);
+      break;
+    }
+    case 'bosMeer': {
+      g.fillStyle = verloop(0, h * .5, ['#8fd3ff', '#e8f7ff']); g.fillRect(0, 0, w, h);
+      bergen('#9fb4c8', h * .5, [[.05, .3], [.25, .42], [.45, .22], [.7, .4], [.9, .28]]);
+      const meer = h * .62;
+      g.fillStyle = '#3e8f5a'; g.fillRect(0, h * .5, w, meer - h * .5);
+      for (let i = 0; i < 22; i++) den(r() * w, meer + 2, .8 + r() * .6, r() > .5 ? '#2a6b45' : '#357d52');
+      g.fillStyle = verloop(meer, h, ['#4f9fcf', '#2b6b9a']); g.fillRect(0, meer, w, h - meer);
+      g.fillStyle = 'rgba(255,255,255,.35)'; for (let i = 0; i < 14; i++) g.fillRect(r() * w, meer + 10 + r() * (h - meer - 20), 18 + r() * 30, 2);
+      g.fillStyle = '#b5553c'; const bx = w * (.2 + r() * .5), by = meer + 30 + r() * 40;          // bootje
+      g.beginPath(); g.moveTo(bx - 20, by); g.lineTo(bx + 20, by); g.lineTo(bx + 13, by + 9); g.lineTo(bx - 13, by + 9); g.fill();
+      break;
+    }
+    case 'tropisch': {
+      g.fillStyle = verloop(0, h * .45, ['#36a9ff', '#c7ecff']); g.fillRect(0, 0, w, h);
+      rondje(w * (.6 + r() * .3), h * .15, 30, '#fff3a0');
+      const zee = h * .45, strand = h * .72;
+      g.fillStyle = verloop(zee, strand, ['#1fb5c9', '#5fe0d6']); g.fillRect(0, zee, w, strand - zee);
+      g.fillStyle = 'rgba(255,255,255,.6)'; for (let i = 0; i < 12; i++) g.fillRect(r() * w, zee + 8 + r() * (strand - zee - 16), 20 + r() * 24, 2);
+      g.fillStyle = '#f4dfa3'; g.beginPath(); g.moveTo(0, strand); g.quadraticCurveTo(w / 2, strand - 22, w, strand); g.lineTo(w, h); g.lineTo(0, h); g.fill();
+      const px = w * (r() > .5 ? .2 : .78), py = h * .95;   // palmboom
+      g.strokeStyle = '#8a5a34'; g.lineWidth = 12; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(px, py); g.quadraticCurveTo(px + 30, py - 150, px + 10, py - 260); g.stroke();
+      g.strokeStyle = '#2e9b4e'; g.lineWidth = 9;
+      for (let i = 0; i < 6; i++) { const a = -Math.PI + i * Math.PI / 5; g.beginPath(); g.moveTo(px + 10, py - 260); g.quadraticCurveTo(px + 10 + 50 * Math.cos(a), py - 290 + 20 * Math.sin(a), px + 10 + 90 * Math.cos(a), py - 250 + 50 * Math.abs(Math.sin(a))); g.stroke(); }
+      rondje(px + 4, py - 252, 8, '#6b4a2f'); rondje(px + 18, py - 250, 8, '#6b4a2f');
+      break;
+    }
+    case 'sneeuw': {
+      g.fillStyle = verloop(0, h * .5, ['#9cc8f0', '#eef6ff']); g.fillRect(0, 0, w, h);
+      bergen('#c9d6e6', h * .55, [[0, .3], [.2, .18], [.38, .4], [.58, .14], [.8, .36], [1, .22]]);
+      bergen('#ffffff', h * .55, [[0, .42], [.15, .34], [.3, .48], [.5, .3], [.66, .5], [.85, .38], [1, .46]]);
+      g.fillStyle = '#f4f8ff'; g.fillRect(0, h * .55, w, h * .45);
+      for (let i = 0; i < 14; i++) den(r() * w, h * (.62 + r() * .3), .8 + r() * .7, '#2f6b4f', true);
+      const hx = w * (.3 + r() * .4), hy = h * .8;           // huisje met licht
+      g.fillStyle = '#8a4b2a'; g.fillRect(hx - 30, hy - 34, 60, 34);
+      g.fillStyle = '#fff'; g.beginPath(); g.moveTo(hx - 38, hy - 32); g.lineTo(hx, hy - 62); g.lineTo(hx + 38, hy - 32); g.fill();
+      g.fillStyle = '#ffd56b'; g.fillRect(hx - 18, hy - 24, 12, 12); g.fillRect(hx + 6, hy - 24, 12, 12);
+      for (let i = 0; i < 70; i++) rondje(r() * w, r() * h, r() * 2 + 1, 'rgba(255,255,255,.9)');
+      break;
+    }
+    case 'noorderlicht': {
+      g.fillStyle = verloop(0, h, ['#03101f', '#0b2440', '#123456']); g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 80; i++) rondje(r() * w, r() * h * .6, r() * 1.3 + .3, 'rgba(255,255,255,.8)');
+      for (let b = 0; b < 3; b++) {                         // golvende lichtbanden
+        const kleur = ['rgba(80,255,170,', 'rgba(120,200,255,', 'rgba(200,120,255,'][b];
+        const y0 = h * (.18 + b * .08), fase = r() * 6;
+        for (let x = 0; x < w; x += 3) {
+          const y = y0 + Math.sin(x / 60 + fase) * 26 + Math.sin(x / 23 + fase) * 8;
+          const v = g.createLinearGradient(0, y - 70, 0, y + 10);
+          v.addColorStop(0, kleur + '0)'); v.addColorStop(.7, kleur + '.55)'); v.addColorStop(1, kleur + '0)');
+          g.fillStyle = v; g.fillRect(x, y - 70, 3, 80);
+        }
+      }
+      bergen('#0d1b2a', h * .7, [[0, .62], [.2, .55], [.4, .64], [.6, .52], [.8, .63], [1, .58]]);
+      g.fillStyle = '#e8f0f8'; g.fillRect(0, h * .74, w, h * .26);
+      const hx = w * (.25 + r() * .5), hy = h * .82;
+      g.fillStyle = '#b3261e'; g.fillRect(hx - 22, hy - 24, 44, 24);
+      g.fillStyle = '#fff'; g.beginPath(); g.moveTo(hx - 28, hy - 22); g.lineTo(hx, hy - 44); g.lineTo(hx + 28, hy - 22); g.fill();
+      g.fillStyle = '#ffd56b'; g.fillRect(hx - 6, hy - 16, 10, 10);
+      break;
+    }
+    case 'ballonnen': {
+      g.fillStyle = verloop(0, h * .7, ['#ffb3a7', '#ffe3c2', '#d7f0ff']); g.fillRect(0, 0, w, h);
+      rondje(w * (.2 + r() * .6), h * .62, 34, 'rgba(255,240,200,.9)');
+      g.fillStyle = '#86c96f'; g.beginPath(); g.moveTo(0, h * .72); g.quadraticCurveTo(w * .3, h * .66, w * .6, h * .73); g.quadraticCurveTo(w * .85, h * .78, w, h * .7); g.lineTo(w, h); g.lineTo(0, h); g.fill();
+      g.fillStyle = '#6fb35a'; g.beginPath(); g.moveTo(0, h * .82); g.quadraticCurveTo(w * .5, h * .76, w, h * .84); g.lineTo(w, h); g.lineTo(0, h); g.fill();
+      const kl = [['#e63946', '#ffd166'], ['#118ab2', '#ffffff'], ['#06d6a0', '#ffd166'], ['#ef476f', '#ffffff'], ['#8338ec', '#ffbe0b'], ['#fb5607', '#ffffff']];
+      const n = 5 + Math.floor(r() * 4);
+      for (let i = 0; i < n; i++) {
+        const x = r() * w, y = 40 + r() * h * .5, s = .45 + r() * .8, [k1, k2] = kies(kl);
+        g.save(); g.translate(x, y); g.scale(s, s);
+        g.fillStyle = k1; g.beginPath(); g.ellipse(0, 0, 30, 36, 0, 0, 7); g.fill();
+        g.fillStyle = k2; g.beginPath(); g.ellipse(0, 0, 10, 36, 0, 0, 7); g.fill();
+        g.strokeStyle = '#6b4a2f'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(-16, 30); g.lineTo(-7, 50); g.moveTo(16, 30); g.lineTo(7, 50); g.stroke();
+        g.fillStyle = '#8a5a34'; g.fillRect(-8, 48, 16, 11);
+        g.restore();
+      }
+      break;
+    }
+    default: {   // 'zee': zonsondergang met bergen en een zeilbootje
+      g.fillStyle = verloop(0, h * .6, ['#5aa7ff', '#ffb38a', '#ffd98f']); g.fillRect(0, 0, w, h);
+      rondje(w * (.3 + r() * .4), h * .5, 34, '#fff1b8');
+      bergen('#8f7fb8', h * .62, [[.1, .36], [.25, .5], [.42, .28], [.6, .5], [.78, .34], [.95, .48]].map(([x, y]) => [x, y + (r() - .5) * .06]));
+      bergen('#6b5f98', h * .62, [[.18, .5], [.34, .42], [.5, .56], [.7, .45], [.88, .55]]);
+      g.fillStyle = verloop(h * .6, h, ['#3f8fd6', '#1d5e9e']); g.fillRect(0, h * .6, w, h * .4);
+      g.fillStyle = 'rgba(255,240,180,.6)'; for (let i = 0; i < 9; i++) g.fillRect(w * .5 - 30 + r() * 60, h * (.63 + i * .035), 18 + r() * 30, 2);
+      const bx = w * (.15 + r() * .6);
+      g.fillStyle = '#fff'; g.beginPath(); g.moveTo(bx, h * .78); g.lineTo(bx, h * .66); g.lineTo(bx + w * .06, h * .77); g.closePath(); g.fill();
+      g.fillStyle = '#7a4a2a'; g.fillRect(bx - w * .04, h * .78, w * .12, 6);
+      g.strokeStyle = '#3a2a4a'; g.lineWidth = 2;
+      for (const [vx, vy] of [[.2, .2], [.26, .16], [.31, .22]]) { g.beginPath(); g.moveTo(vx * w - 7, vy * h); g.quadraticCurveTo(vx * w - 3, vy * h - 5, vx * w, vy * h); g.quadraticCurveTo(vx * w + 3, vy * h - 5, vx * w + 7, vy * h); g.stroke(); }
+    }
+  }
   return c;
 }
 function maakBeslag(w, h) {
@@ -1123,7 +1657,7 @@ function ramenKolomKlaar(k, netjes) {
 function tekenRamen(W, H, nu, dt, f, afw, bezig) {
   const R = spel.ramen, m = ramenMaten(W, H);
   const iw = Math.round(m.w), ih = Math.round(m.h);
-  if (!R.uitzicht || R.w !== iw || R.h !== ih) { R.uitzicht = maakUitzicht(iw, ih); R.laag = null; }
+  if (!R.uitzicht || R.w !== iw || R.h !== ih) { R.uitzicht = maakUitzicht(iw, ih, R.type); R.laag = null; }
   if (!R.laag) {                           // nieuw beslagen raam; al gedane banen meteen droog
     R.w = iw; R.h = ih; R.laag = maakBeslag(iw, ih);
     spel.resultaten.forEach((netjes, k) => ramenKolomKlaar(k, netjes));
@@ -1180,7 +1714,7 @@ function tekenMolen(W, H, nu, dt, f, afw, bezig, l) {
   // beweging van de hand geeft de molen vaart
   if (bezig) {
     M.v += Math.abs(f - M.vorigF) * 1100;
-    if (f >= .875 && !M.boven) { M.boven = true; spelBericht('Hup! Nu rustig terugdraaien.'); }
+    if (f >= .875 && !M.boven) { M.boven = true; spelBericht(t('Hup! Nu rustig terugdraaien.')); }
   }
   M.vorigF = f;
   M.v *= Math.exp(-dt * (afw ? 3 : .7));
@@ -1221,7 +1755,7 @@ function tekenMolen(W, H, nu, dt, f, afw, bezig, l) {
     cx.fillStyle = goud ? '#ffd23f' : '#f3e6c8';
     rondeRect(zx, zy + 30 * (1 - g), 26, 30 * g, 9); cx.fill();
     cx.strokeStyle = goud ? '#c98f00' : '#c9b48a'; cx.lineWidth = 1.5; cx.stroke();
-    if (g > .8) { cx.fillStyle = goud ? '#8a5a00' : '#8a7550'; cx.font = '700 7px system-ui,sans-serif'; cx.textAlign = 'center'; cx.fillText('MEEL', zx + 13, zy + 20); }
+    if (g > .8) { cx.fillStyle = goud ? '#8a5a00' : '#8a7550'; cx.font = '700 7px system-ui,sans-serif'; cx.textAlign = 'center'; cx.fillText(t('MEEL'), zx + 13, zy + 20); }
   });
 
   // draaiknop links: zo staat je hand nu
@@ -1237,7 +1771,406 @@ function tekenMolen(W, H, nu, dt, f, afw, bezig, l) {
   cx.fillStyle = afw ? '#d6453d' : '#e9b48c'; cx.beginPath(); cx.arc(kx + 32 * Math.sin(rad(hh)) - 8 * Math.cos(rad(hh)), ky - 32 * Math.cos(rad(hh)) - 8 * Math.sin(rad(hh)), 6, 0, 7); cx.fill();
   cx.lineCap = 'butt';
   cx.fillStyle = '#16233a'; cx.font = '600 11px system-ui,sans-serif'; cx.textAlign = 'center';
-  cx.fillText('jouw hand', kx, ky + r + 26);
+  cx.fillText(t('jouw hand'), kx, ky + r + 26);
+}
+
+// =====================================================================================
+//  COCKTAILS SHAKEN (oefening 1: onderarm op en neer met de duim omhoog)
+// =====================================================================================
+const COCKTAILS = [
+  { naam: 'Mojito', glas: 'hoog', lagen: ['#d9f2c2', '#eefae0'], deco: ['munt', 'limoen', 'rietje'] },
+  { naam: 'Piña Colada', glas: 'hoog', lagen: ['#fff1c9', '#fffaf0'], deco: ['ananas', 'kers', 'parasol'] },
+  { naam: 'Tequila Sunrise', glas: 'hoog', lagen: ['#d62839', '#ff8c1a', '#ffd166'], deco: ['sinaasappel', 'kers'] },
+  { naam: 'Blue Lagoon', glas: 'hoog', lagen: ['#1c9bf0', '#7fd3ff'], deco: ['citroen', 'rietje'] },
+  { naam: 'Cosmopolitan', glas: 'martini', lagen: ['#ff4f81'], deco: ['limoen'] },
+  { naam: 'Margarita', glas: 'coupe', lagen: ['#e4f29a'], deco: ['limoen', 'zout'] },
+  { naam: 'Strawberry Daiquiri', glas: 'coupe', lagen: ['#ff3d5e'], deco: ['kers'] },
+  { naam: 'Aperol Spritz', glas: 'hoog', lagen: ['#ff6a00', '#ffa64d'], deco: ['sinaasappel'] },
+  { naam: 'Espresso Martini', glas: 'martini', lagen: ['#3b2416', '#d8b98a'], deco: ['bonen'] },
+  { naam: 'Mai Tai', glas: 'kort', lagen: ['#b8321f', '#f39c12'], deco: ['munt', 'parasol'] },
+  { naam: 'Caipirinha', glas: 'kort', lagen: ['#eaf7d8'], deco: ['limoen'] },
+  { naam: 'Shirley Temple', glas: 'hoog', lagen: ['#ff7aa2', '#ffd6e0'], deco: ['kers', 'rietje'] },
+  { naam: 'Pink Lemonade', glas: 'hoog', lagen: ['#ffadc6'], deco: ['citroen', 'rietje'] },
+  { naam: 'Blue Hawaii', glas: 'hoog', lagen: ['#00a8e8', '#7ff0ff'], deco: ['ananas', 'parasol'] },
+  { naam: 'Long Island Iced Tea', glas: 'hoog', lagen: ['#9c4f22', '#c98a4b'], deco: ['citroen', 'rietje'] },
+  { naam: 'Virgin Colada', glas: 'kort', lagen: ['#fff6dc'], deco: ['kers'] },
+  { naam: 'Passion Fruit Fizz', glas: 'coupe', lagen: ['#ffb703', '#ffe08a'], deco: ['sinaasappel'] },
+  { naam: 'Watermelon Cooler', glas: 'hoog', lagen: ['#ff5d73', '#ff9aa8'], deco: ['munt', 'rietje'] }
+];
+const ZINNEN = ['Eén {d}, graag!', 'Mag ik een {d}?', 'Ik wil graag een {d}!', 'Een {d} alsjeblieft!', 'Doe mij maar een {d}!', 'Heb je een {d} voor me?'];
+const HUID = ['#f6d1b1', '#e9b48c', '#c68b59', '#8d5a3a', '#5c3a26'];
+const HAAR = ['#2b1d14', '#5a3825', '#a0522d', '#e3b55b', '#d9d9d9', '#b3261e', '#111'];
+const SHIRT = ['#2f6fde', '#16a3a5', '#e8962a', '#7b5ea7', '#e63946', '#2a9d8f', '#ffb703', '#264653'];
+
+function cocktailNieuweKlant() {
+  const C = spel.cocktail;
+  C.drank = kiesNieuw(COCKTAILS, C.recent, 5);
+  C.klant = { huid: kies(HUID), haar: kies(HAAR), shirt: kies(SHIRT), stijl: Math.floor(rnd() * 4), bril: rnd() < .3, hoed: rnd() < .2,
+    zin: kies(inst.taal === 'en' ? ZINNEN_EN : ZINNEN).replace('{d}', C.drank.naam) };
+}
+
+function glasVorm(x, y, type) {      // pad van de binnenkant van het glas; y = onderkant
+  cx.beginPath();
+  if (type === 'hoog') { cx.rect(x - 16, y - 78, 32, 74); }
+  else if (type === 'kort') { cx.rect(x - 22, y - 46, 44, 42); }
+  else if (type === 'martini') { cx.moveTo(x - 34, y - 78); cx.lineTo(x + 34, y - 78); cx.lineTo(x, y - 40); cx.closePath(); }
+  else { cx.moveTo(x - 32, y - 66); cx.quadraticCurveTo(x - 30, y - 34, x, y - 34); cx.quadraticCurveTo(x + 30, y - 34, x + 32, y - 66); cx.closePath(); }
+}
+function tekenGlas(x, y, drank, vul) {
+  const glas = drank.glas;
+  // vloeistof
+  cx.save(); glasVorm(x, y, glas); cx.clip();
+  const top = { hoog: y - 78, kort: y - 46, martini: y - 78, coupe: y - 66 }[glas], bodem = { hoog: y - 4, kort: y - 4, martini: y - 40, coupe: y - 34 }[glas];
+  const hoogte = (bodem - top) * vul, laagH = hoogte / drank.lagen.length;
+  drank.lagen.forEach((k, i) => { cx.fillStyle = k; cx.fillRect(x - 40, bodem - laagH * (i + 1), 80, laagH + 1); });
+  if (vul > .3 && (glas === 'hoog' || glas === 'kort')) { cx.fillStyle = 'rgba(255,255,255,.6)'; for (let i = 0; i < 3; i++) cx.fillRect(x - 10 + i * 8, bodem - hoogte * .5 - i * 6, 8, 8); }   // ijsblokjes
+  cx.restore();
+  // glas
+  cx.strokeStyle = 'rgba(90,110,130,.9)'; cx.lineWidth = 2.5; glasVorm(x, y, glas); cx.stroke();
+  cx.strokeStyle = 'rgba(255,255,255,.7)'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(x - 10, top + 8); cx.lineTo(x - 12, top + 26); cx.stroke();
+  if (glas === 'martini' || glas === 'coupe') {                // voet
+    cx.strokeStyle = 'rgba(90,110,130,.9)'; cx.lineWidth = 3;
+    cx.beginPath(); cx.moveTo(x, bodem); cx.lineTo(x, y - 3); cx.moveTo(x - 16, y - 2); cx.lineTo(x + 16, y - 2); cx.stroke();
+  }
+  if (vul < .95) return;
+  // garnering
+  const rand = top;
+  for (const d of drank.deco) {
+    if (d === 'limoen' || d === 'citroen' || d === 'sinaasappel') {
+      const k = { limoen: '#7ac943', citroen: '#ffe14d', sinaasappel: '#ff9f1c' }[d];
+      cx.fillStyle = k; cx.beginPath(); cx.arc(x + 22, rand + 2, 11, Math.PI * .9, Math.PI * 2.1); cx.fill();
+      cx.fillStyle = 'rgba(255,255,255,.7)'; cx.beginPath(); cx.arc(x + 22, rand + 2, 7, Math.PI * .95, Math.PI * 2.05); cx.fill();
+    } else if (d === 'kers') { cx.strokeStyle = '#2f7d4a'; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(x - 6, rand - 4); cx.lineTo(x - 2, rand - 16); cx.stroke(); cx.fillStyle = '#d00030'; cx.beginPath(); cx.arc(x - 6, rand - 2, 5, 0, 7); cx.fill(); }
+    else if (d === 'munt') { cx.fillStyle = '#2fa04f'; for (let i = 0; i < 3; i++) { cx.beginPath(); cx.ellipse(x - 8 + i * 6, rand - 4, 3, 7, -.5 + i * .5, 0, 7); cx.fill(); } }
+    else if (d === 'rietje') { cx.strokeStyle = '#ff4d6d'; cx.lineWidth = 4; cx.beginPath(); cx.moveTo(x + 4, bodem - 10); cx.lineTo(x + 12, rand - 26); cx.stroke(); }
+    else if (d === 'parasol') {
+      cx.strokeStyle = '#8a5a34'; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(x - 4, rand + 6); cx.lineTo(x - 14, rand - 22); cx.stroke();
+      cx.fillStyle = '#ff70a6'; cx.beginPath(); cx.moveTo(x - 30, rand - 18); cx.quadraticCurveTo(x - 14, rand - 40, x + 2, rand - 22); cx.closePath(); cx.fill();
+    } else if (d === 'ananas') { cx.fillStyle = '#ffd23f'; cx.beginPath(); cx.moveTo(x + 14, rand + 4); cx.lineTo(x + 34, rand - 8); cx.lineTo(x + 34, rand + 8); cx.fill(); }
+    else if (d === 'bonen') { cx.fillStyle = '#3b2416'; for (let i = 0; i < 3; i++) { cx.beginPath(); cx.ellipse(x - 8 + i * 8, rand + 3, 3, 2, 0, 0, 7); cx.fill(); } }
+    else if (d === 'zout') { cx.fillStyle = 'rgba(255,255,255,.95)'; cx.fillRect(x - 32, rand - 2, 64, 3); }
+  }
+}
+
+function tekenKlant(x, y, k, blij, sip) {
+  cx.fillStyle = k.shirt; rondeRect(x - 34, y - 40, 68, 60, 18); cx.fill();
+  cx.fillStyle = k.huid; cx.fillRect(x - 7, y - 50, 14, 14);
+  cx.beginPath(); cx.arc(x, y - 68, 24, 0, 7); cx.fill();
+  cx.fillStyle = k.haar;
+  if (k.stijl === 0) { cx.beginPath(); cx.arc(x, y - 74, 25, Math.PI, 0); cx.fill(); }
+  else if (k.stijl === 1) { cx.beginPath(); cx.arc(x, y - 74, 25, Math.PI, 0); cx.fill(); cx.fillRect(x - 25, y - 76, 9, 34); cx.fillRect(x + 16, y - 76, 9, 34); }
+  else if (k.stijl === 2) { for (let i = -3; i <= 3; i++) { cx.beginPath(); cx.arc(x + i * 7, y - 90, 8, 0, 7); cx.fill(); } }
+  else { cx.beginPath(); cx.arc(x, y - 80, 20, Math.PI * 1.1, Math.PI * 1.9); cx.fill(); }
+  if (k.hoed) { cx.fillStyle = '#333'; cx.fillRect(x - 30, y - 92, 60, 6); cx.fillRect(x - 18, y - 114, 36, 24); }
+  gezichtje(x, y - 66, sip, .9);
+  if (k.bril) { cx.strokeStyle = '#222'; cx.lineWidth = 1.5; cx.beginPath(); cx.arc(x - 7, y - 68, 6, 0, 7); cx.moveTo(x + 13, y - 68); cx.arc(x + 7, y - 68, 6, 0, 7); cx.stroke(); }
+  if (blij) for (let i = 0; i < 3; i++) { cx.fillStyle = '#ff4d6d'; cx.font = '16px system-ui'; cx.textAlign = 'center'; cx.fillText('♥', x - 24 + i * 24, y - 104 - (performance.now() / 20 % 20)); }
+}
+
+function tekenCocktail(W, H, nu, dt, f, afw, bezig) {
+  const C = spel.cocktail;
+  if (!C.drank) cocktailNieuweKlant();
+  // bar-achtergrond
+  cx.fillStyle = '#2b2340'; cx.fillRect(0, 0, W, H);
+  cx.fillStyle = '#3a2f57'; cx.fillRect(0, 40, W, 6); cx.fillRect(0, 110, W, 6);
+  const fles = ['#2a9d8f', '#e9c46a', '#e76f51', '#8ecae6', '#ffb703', '#90be6d', '#f28482'];
+  for (let i = 0; i < 12; i++) { const x = 14 + i * (W - 28) / 12; cx.fillStyle = fles[i % fles.length]; rondeRect(x, 12 + (i % 2) * 6, 14, 28 - (i % 2) * 6, 3); cx.fill(); rondeRect(x + 4, 82 + (i % 3) * 4, 12, 28 - (i % 3) * 4, 3); cx.fill(); }
+  for (let i = 0; i < 6; i++) { cx.fillStyle = `hsla(${(nu / 30 + i * 60) % 360},90%,65%,.8)`; cx.beginPath(); cx.arc(20 + i * (W - 40) / 5, 130, 4, 0, 7); cx.fill(); }   // lampjes
+
+  const toog = H - 120;
+  const fase = C.fase, tt = (nu - C.t0) / 1000;
+  // klant met bestelling
+  const kx = W * .74, ky = toog;
+  const blij = fase === 'blij' && C.netjes, sip = fase === 'blij' && !C.netjes;
+  tekenKlant(kx, ky, C.klant, blij, sip);
+  if (fase === 'bestellen' || fase === 'gieten') {
+    cx.font = '600 13px system-ui,sans-serif';
+    const tw = Math.min(W * .62, cx.measureText(C.klant.zin).width + 22);
+    const bx = Math.max(8, kx - tw + 30), by = ky - 160;
+    cx.fillStyle = '#fff'; rondeRect(bx, by, tw, 30, 12); cx.fill();
+    cx.beginPath(); cx.moveTo(kx - 6, by + 30); cx.lineTo(kx + 4, by + 42); cx.lineTo(kx + 10, by + 30); cx.fill();
+    cx.fillStyle = '#16233a'; cx.textAlign = 'center'; cx.fillText(C.klant.zin, bx + tw / 2, by + 20, tw - 10);
+  }
+  // toog
+  cx.fillStyle = '#7a4a2a'; cx.fillRect(0, toog, W, 22);
+  cx.fillStyle = '#5a341c'; cx.fillRect(0, toog + 22, W, H - toog - 22);
+  cx.fillStyle = 'rgba(255,255,255,.08)'; for (let x = 0; x < W; x += 50) cx.fillRect(x, toog + 30, 2, H);
+  // gemaakte cocktails van deze ronde, klein op een plank
+  spel.resultaten.forEach((netjes, i) => {
+    cx.fillStyle = netjes ? '#ffd23f' : 'rgba(255,255,255,.35)';
+    tekenSter(18 + i * 24, toog + 48, netjes ? 8 : 6, cx.fillStyle);
+  });
+
+  // glas op de toog
+  let gx = W * .44, vul = 0;
+  if (fase === 'gieten') { vul = Math.min(1, tt / 1.1); if (tt > 1.1) { C.fase = 'serveren'; C.t0 = nu; } }
+  else if (fase === 'serveren') { vul = 1; gx = W * .44 + (kx - 40 - W * .44) * Math.min(1, tt / .7); if (tt > .7) { C.fase = 'blij'; C.t0 = nu; } }
+  else if (fase === 'blij') { vul = 1; gx = kx - 40; if (tt > 1.4) { C.gemaakt.push({ drank: C.drank, netjes: C.netjes }); cocktailNieuweKlant(); C.fase = 'bestellen'; } }
+  tekenGlas(gx, toog, C.drank, vul);
+  if (fase === 'gieten' && !C.netjes) { cx.fillStyle = C.drank.lagen[0]; for (let i = 0; i < 4; i++) { cx.beginPath(); cx.arc(gx - 30 + i * 18, toog - 2, 3 + (i % 2), 0, 7); cx.fill(); } }   // gemorst
+  if (fase === 'blij' && C.netjes) { cx.fillStyle = '#ffd23f'; cx.font = '700 15px system-ui,sans-serif'; cx.textAlign = 'center'; cx.fillText(t('+ fooi ⭐'), kx, ky - 130); }
+
+  // shaker: volgt je arm
+  const sx = W * .2, laag = toog - 30, hoog = 190;
+  let sy = laag - (laag - hoog) * Math.min(1, f);
+  let hoek = 0;
+  if (bezig && f > .5) { sy += Math.sin(nu / 55) * 6 * f; hoek = Math.sin(nu / 70) * .12 * f; }
+  if (bezig && f >= .875 && !C.boven && fase === 'bestellen') { C.boven = true; spelBericht(t('Shake shake! 🍸 Nu rustig terug naar beneden.')); }
+  if (fase === 'gieten') { sy = toog - 120; hoek = -1.9; }
+  const sxx = fase === 'gieten' ? gx + 36 : sx;
+  cx.save(); cx.translate(sxx, sy); cx.rotate(hoek);
+  const staal = cx.createLinearGradient(-18, 0, 18, 0); staal.addColorStop(0, '#9aa5b1'); staal.addColorStop(.5, '#eef2f5'); staal.addColorStop(1, '#8a96a3');
+  cx.fillStyle = staal;
+  cx.beginPath(); cx.moveTo(-18, 30); cx.lineTo(-14, -26); cx.lineTo(14, -26); cx.lineTo(18, 30); cx.closePath(); cx.fill();
+  cx.fillRect(-11, -40, 22, 14); cx.beginPath(); cx.arc(0, -42, 7, 0, 7); cx.fill();
+  cx.fillStyle = afw ? '#d6453d' : '#e9b48c';                  // hand die de shaker vasthoudt
+  rondeRect(-23, -4, 46, 24, 11); cx.fill();
+  cx.strokeStyle = 'rgba(120,70,40,.35)'; cx.lineWidth = 1.5;
+  for (let i = 0; i < 3; i++) { cx.beginPath(); cx.moveTo(-20, 2 + i * 6); cx.lineTo(20, 2 + i * 6); cx.stroke(); }
+  cx.restore();
+  if (fase === 'gieten') {
+    cx.strokeStyle = C.drank.lagen[0]; cx.lineWidth = 5; cx.beginPath(); cx.moveTo(sxx - 30, sy + 8); cx.lineTo(gx + 4, toog - 70 * (1 - vul) - 10); cx.stroke();
+  }
+}
+
+// =====================================================================================
+//  GOKKAST (oefening 2: onderarm optillen met de handpalm naar beneden = hendel)
+//  Alleen speelgeld. Winkans per draai is 25%, met echt willekeurige getallen (crypto).
+// =====================================================================================
+const SYMBOLEN = ['kers', 'citroen', 'sinaasappel', 'druif', 'bel', 'ster', 'diamant', 'zeven'];
+const WINST = { kers: 5, citroen: 8, sinaasappel: 10, druif: 15, bel: 20, ster: 30, diamant: 50, zeven: 100 };
+const WINST_GEWICHT = { kers: 26, citroen: 20, sinaasappel: 17, druif: 13, bel: 10, ster: 7, diamant: 5, zeven: 2 };   // grote prijzen zijn zeldzamer
+const WINKANS = 0.25;
+
+function slotStart(nu) {
+  const S = spel.slot;
+  S.draait = true; S.t0 = nu; S.stops = []; S.uitkomst = null;
+}
+function slotStop(netjes, nu) {
+  const S = spel.slot;
+  if (!S.draait) slotStart(nu - 600);
+  // uitkomst: eerst bepalen óf je wint (25%), daarna welke symbolen
+  let rollen, winst = 0;
+  if (rnd() < WINKANS) {
+    let r = rnd() * 100, sym = 'kers';
+    for (const s of SYMBOLEN) { r -= WINST_GEWICHT[s]; if (r < 0) { sym = s; break; } }
+    rollen = [sym, sym, sym];
+    winst = WINST[sym] * (netjes ? 2 : 1);
+  } else {
+    do { rollen = [kies(SYMBOLEN), kies(SYMBOLEN), kies(SYMBOLEN)]; } while (rollen[0] === rollen[1] && rollen[1] === rollen[2]);
+  }
+  S.uitkomst = { rollen, winst, netjes };
+  const basis = Math.max(nu, S.t0 + 500);
+  S.stops = [basis + 350, basis + 800, basis + 1250];
+}
+
+function tekenSymbool(sym, x, y, s) {
+  cx.save(); cx.translate(x, y); cx.scale(s, s);
+  switch (sym) {
+    case 'kers':
+      cx.strokeStyle = '#2f7d4a'; cx.lineWidth = 2.5; cx.beginPath(); cx.moveTo(-8, 4); cx.quadraticCurveTo(-4, -14, 4, -18); cx.moveTo(8, 6); cx.quadraticCurveTo(6, -10, 4, -18); cx.stroke();
+      cx.fillStyle = '#d00030'; cx.beginPath(); cx.arc(-9, 8, 9, 0, 7); cx.arc(9, 10, 9, 0, 7); cx.fill();
+      cx.fillStyle = 'rgba(255,255,255,.6)'; cx.beginPath(); cx.arc(-12, 5, 2.5, 0, 7); cx.arc(6, 7, 2.5, 0, 7); cx.fill(); break;
+    case 'citroen':
+      cx.fillStyle = '#ffd60a'; cx.beginPath(); cx.ellipse(0, 0, 20, 14, -.3, 0, 7); cx.fill();
+      cx.fillStyle = 'rgba(255,255,255,.5)'; cx.beginPath(); cx.ellipse(-6, -5, 6, 3, -.3, 0, 7); cx.fill(); break;
+    case 'sinaasappel':
+      cx.fillStyle = '#ff8c1a'; cx.beginPath(); cx.arc(0, 2, 17, 0, 7); cx.fill();
+      cx.fillStyle = '#2f9b4f'; cx.beginPath(); cx.ellipse(6, -16, 7, 4, -.6, 0, 7); cx.fill(); break;
+    case 'druif':
+      cx.fillStyle = '#7b2cbf';
+      for (const [dx, dy] of [[-9, -8], [0, -8], [9, -8], [-5, 1], [5, 1], [0, 10]]) { cx.beginPath(); cx.arc(dx, dy, 6.5, 0, 7); cx.fill(); }
+      cx.strokeStyle = '#2f7d4a'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(0, -14); cx.lineTo(3, -22); cx.stroke(); break;
+    case 'bel':
+      cx.fillStyle = '#ffc300'; cx.beginPath(); cx.moveTo(-18, 10); cx.quadraticCurveTo(-16, -18, 0, -18); cx.quadraticCurveTo(16, -18, 18, 10); cx.closePath(); cx.fill();
+      cx.fillStyle = '#e0a800'; cx.fillRect(-20, 10, 40, 5); cx.beginPath(); cx.arc(0, 18, 4, 0, 7); cx.fill(); break;
+    case 'ster': cx.restore(); tekenSter(x, y, 20 * s, '#ffd23f'); return;
+    case 'diamant':
+      cx.fillStyle = '#4cc9f0'; cx.beginPath(); cx.moveTo(-18, -6); cx.lineTo(-9, -16); cx.lineTo(9, -16); cx.lineTo(18, -6); cx.lineTo(0, 18); cx.closePath(); cx.fill();
+      cx.fillStyle = 'rgba(255,255,255,.55)'; cx.beginPath(); cx.moveTo(-9, -16); cx.lineTo(-3, -6); cx.lineTo(3, -16); cx.fill(); break;
+    case 'zeven':
+      cx.fillStyle = '#e63946'; cx.font = '900 40px system-ui,sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText('7', 0, 2); cx.textBaseline = 'alphabetic'; break;
+  }
+  cx.restore();
+}
+
+function tekenSlot(W, H, nu, dt, f, afw, bezig) {
+  const S = spel.slot;
+  // casino-achtergrond
+  const g = cx.createRadialGradient(W / 2, H * .4, 40, W / 2, H * .4, H);
+  g.addColorStop(0, '#5a1a6e'); g.addColorStop(1, '#1d0b2b'); cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 30; i++) { cx.fillStyle = `rgba(255,215,0,${.15 + .15 * Math.sin(nu / 300 + i)})`; cx.beginPath(); cx.arc((i * 73) % W, (i * 131) % H, 2, 0, 7); cx.fill(); }
+
+  // hendel volgt je arm; bovenaan = trekken, dan gaan de rollen draaien
+  if (bezig && f >= .875 && !S.boven) { S.boven = true; if (!S.draait) { slotStart(nu); spelBericht(t('De rollen draaien! Nu rustig terug.')); } }
+  if (f < .3) S.boven = false;
+
+  const mw = Math.min(W - 70, 290), mx = (W - mw) / 2 - 16, my = 70, mh = Math.min(H - 150, 300);
+  // kast
+  cx.fillStyle = '#b3261e'; rondeRect(mx, my, mw, mh, 22); cx.fill();
+  cx.fillStyle = '#d63a2f'; rondeRect(mx + 8, my + 8, mw - 16, mh - 16, 18); cx.fill();
+  cx.fillStyle = '#ffd23f'; rondeRect(mx + 20, my - 34, mw - 40, 48, 14); cx.fill();
+  cx.fillStyle = '#7a1010'; cx.font = '900 20px system-ui,sans-serif'; cx.textAlign = 'center'; cx.fillText('REWIN SLOTS', mx + mw / 2, my - 3);
+  for (let i = 0; i < 12; i++) { const aan = Math.floor(nu / 180 + i) % 2 === 0; cx.fillStyle = aan ? '#fff6a0' : '#a8761a'; cx.beginPath(); cx.arc(mx + 30 + i * (mw - 60) / 11, my + 22, 4, 0, 7); cx.fill(); }
+
+  // rollen
+  const rw = (mw - 70) / 3, rh = 96, ry = my + 50;
+  for (let i = 0; i < 3; i++) {
+    const rx = mx + 25 + i * (rw + 10);
+    cx.fillStyle = '#fffdf5'; rondeRect(rx, ry, rw, rh, 10); cx.fill();
+    cx.save(); rondeRect(rx, ry, rw, rh, 10); cx.clip();
+    const gestopt = S.uitkomst && nu >= S.stops[i];
+    if (S.draait && !gestopt) {
+      const off = ((nu - S.t0) * (1.1 + i * .15)) % (SYMBOLEN.length * 44);
+      for (let k = -1; k < SYMBOLEN.length + 1; k++) {
+        const y = ry + rh / 2 + k * 44 - (off % 44), idx = (Math.floor(off / 44) + k + i * 3 + SYMBOLEN.length * 2) % SYMBOLEN.length;
+        tekenSymbool(SYMBOLEN[idx], rx + rw / 2, y, .85);
+      }
+      cx.fillStyle = 'rgba(255,255,255,.35)'; cx.fillRect(rx, ry, rw, rh);
+    } else {
+      const sym = S.uitkomst ? S.uitkomst.rollen[i] : SYMBOLEN[S.rollen[i]];
+      tekenSymbool(sym, rx + rw / 2, ry + rh / 2, 1.15);
+    }
+    cx.restore();
+    cx.strokeStyle = '#7a1010'; cx.lineWidth = 3; rondeRect(rx, ry, rw, rh, 10); cx.stroke();
+  }
+  // winlijn
+  cx.strokeStyle = 'rgba(255,210,63,.8)'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(mx + 18, ry + rh / 2); cx.lineTo(mx + mw - 18, ry + rh / 2); cx.stroke();
+
+  // uitkomst bekend maken als de laatste rol stopt
+  if (S.draait && S.uitkomst && nu >= S.stops[2]) {
+    S.draait = false;
+    const u = S.uitkomst;
+    if (u.winst) {
+      S.munten += u.winst; S.winsten++;
+      spelBericht(t('Drie op een rij! +{w} munten', { w: u.winst }) + (u.netjes ? t(' (dubbel, netjes!)') : '') + ' 🎉');
+      for (let i = 0; i < 26; i++) S.regen.push({ x: W / 2 + (rnd() - .5) * 60, y: ry + rh, vx: (rnd() - .5) * 220, vy: -150 - rnd() * 220, t: nu });
+    } else spelBericht(t(kies(['Helaas, volgende keer beter!', 'Net niet… nog een keer!', 'Geen prijs deze keer.'])));
+    spelScore();
+  }
+
+  // munten-teller
+  cx.fillStyle = '#1d0b2b'; rondeRect(mx + 30, ry + rh + 22, mw - 60, 40, 10); cx.fill();
+  cx.fillStyle = '#ffd23f'; cx.font = '700 20px ui-monospace,monospace'; cx.textAlign = 'center';
+  cx.fillText(`🪙 ${String(S.munten).padStart(4, '0')}`, mx + mw / 2, ry + rh + 49);
+  cx.fillStyle = 'rgba(255,255,255,.75)'; cx.font = '600 11px system-ui,sans-serif';
+  cx.fillText(t('speelgeld · winkans 1 op 4'), mx + mw / 2, ry + rh + 80);
+  // muntjesregen
+  S.regen = S.regen.filter(m => nu - m.t < 1800);
+  for (const m of S.regen) {
+    const tt = (nu - m.t) / 1000;
+    const x = m.x + m.vx * tt, y = m.y + m.vy * tt + 420 * tt * tt;
+    cx.fillStyle = '#ffd23f'; cx.beginPath(); cx.ellipse(x, y, 7, 7 * Math.abs(Math.cos(tt * 8)) + 1, 0, 0, 7); cx.fill();
+  }
+
+  // hendel rechts: wordt naar beneden getrokken als je je arm optilt
+  const hx = mx + mw + 14, hy0 = my + 70;
+  cx.fillStyle = '#888'; rondeRect(mx + mw - 6, hy0 - 10, 26, 40, 8); cx.fill();
+  const eindY = hy0 + 10 - 80 * Math.cos(rad(Math.min(1, f) * 150));
+  cx.strokeStyle = '#c0c6cc'; cx.lineWidth = 7; cx.lineCap = 'round';
+  cx.beginPath(); cx.moveTo(hx + 8, hy0 + 10); cx.lineTo(hx + 8, eindY); cx.stroke(); cx.lineCap = 'butt';
+  cx.fillStyle = afw ? '#d6453d' : '#e63946'; cx.beginPath(); cx.arc(hx + 8, eindY, 13, 0, 7); cx.fill();
+  cx.fillStyle = 'rgba(255,255,255,.5)'; cx.beginPath(); cx.arc(hx + 4, eindY - 4, 4, 0, 7); cx.fill();
+}
+
+// =====================================================================================
+//  HOND OF KAT AAIEN (oefening 3: hand draaien van duim omhoog naar plat)
+// =====================================================================================
+function tekenDier(W, H, nu, dt, f, afw, bezig) {
+  const D = spel.dier;
+  // woonkamer
+  cx.fillStyle = '#f6e7d2'; cx.fillRect(0, 0, W, H);
+  cx.fillStyle = '#ead3b4'; for (let x = 0; x < W; x += 36) cx.fillRect(x, 0, 18, H * .62);
+  const vloer = H * .62;
+  cx.fillStyle = '#c99a6b'; cx.fillRect(0, vloer, W, H - vloer);
+  cx.strokeStyle = 'rgba(120,80,40,.25)'; cx.lineWidth = 2; for (let y = vloer + 20; y < H; y += 22) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
+  // schilderijtje en plantje
+  cx.fillStyle = '#8a5a34'; cx.fillRect(W * .12 - 4, 114, 74, 56); cx.fillStyle = '#9ad0ff'; cx.fillRect(W * .12, 118, 66, 48);
+  cx.fillStyle = '#7cc46a'; cx.beginPath(); cx.moveTo(W * .12, 166); cx.lineTo(W * .12 + 30, 138); cx.lineTo(W * .12 + 66, 166); cx.fill();
+
+  // liefdesbalk
+  const bx = 24, by = 20, bw = W - 48;
+  cx.fillStyle = 'rgba(255,255,255,.85)'; rondeRect(bx, by, bw, 26, 13); cx.fill();
+  const vol = D.liefde / 100;
+  if (vol > 0) {
+    const gr = cx.createLinearGradient(bx, 0, bx + bw, 0); gr.addColorStop(0, '#ff8fab'); gr.addColorStop(1, '#ff4d6d');
+    cx.fillStyle = gr; rondeRect(bx + 3, by + 3, Math.max(20, (bw - 6) * vol), 20, 10); cx.fill();
+  }
+  cx.fillStyle = '#7a1f3d'; cx.font = '700 13px system-ui,sans-serif'; cx.textAlign = 'center';
+  cx.fillText(t('💖 Liefde van {n}: {l}%', { n: D.naam, l: D.liefde }), W / 2, by + 18);
+  if (D.liefde >= 100) for (let i = 0; i < 5; i++) tekenSter(bx + (i + .5) * bw / 5, by - 10 + 4 * Math.sin(nu / 150 + i), 6, '#ffd23f');
+
+  // het dier (ligt op een kussen)
+  const tt = (nu - D.t0) / 1000, reactie = tt < 1.4 ? D.reactie : null;
+  const schrik = reactie === 'tik', blij = reactie === 'aai' || D.liefde >= 100;
+  const mx = W * .52, my = vloer + 40 + (schrik ? -10 * Math.max(0, 1 - tt * 2) : 0);
+  cx.fillStyle = '#6c8ed0'; cx.beginPath(); cx.ellipse(mx, my + 34, 140, 30, 0, 0, 7); cx.fill();
+  const lijf = 100, kop = mx - 104;
+  const v = D.vacht, donker = 'rgba(0,0,0,.18)';
+  // staart
+  cx.strokeStyle = v; cx.lineWidth = D.soort === 'kat' ? 10 : 12; cx.lineCap = 'round';
+  const kwispel = blij ? Math.sin(nu / (D.soort === 'hond' ? 60 : 160)) * 18 : afw ? 0 : Math.sin(nu / 600) * 6;
+  cx.beginPath();
+  if (D.soort === 'kat') { cx.moveTo(mx + lijf - 10, my + 6); cx.quadraticCurveTo(mx + lijf + 40, my - 10 + kwispel, mx + lijf + 30, my - 50 + kwispel); }
+  else { cx.moveTo(mx + lijf - 10, my - 4); cx.lineTo(mx + lijf + 24, my - 26 + kwispel); }
+  cx.stroke(); cx.lineCap = 'butt';
+  // lijf
+  cx.fillStyle = v; cx.beginPath(); cx.ellipse(mx, my, lijf, 40, 0, 0, 7); cx.fill();
+  cx.fillStyle = donker; cx.beginPath(); cx.ellipse(mx + 10, my + 20, lijf - 20, 14, 0, 0, Math.PI); cx.fill();
+  // pootjes
+  cx.fillStyle = v; for (const px of [kop + 40, kop + 70, mx + 60, mx + 84]) { rondeRect(px - 9, my + 22, 18, 22, 8); cx.fill(); }
+  // kop
+  cx.fillStyle = v; cx.beginPath(); cx.arc(kop, my - 24, 40, 0, 7); cx.fill();
+  if (D.soort === 'kat') {
+    for (const s of [-1, 1]) {
+      const plat = schrik ? .5 : 1;
+      cx.fillStyle = v; cx.beginPath(); cx.moveTo(kop + s * 14, my - 56); cx.lineTo(kop + s * 34, my - 56 - 30 * plat); cx.lineTo(kop + s * 38, my - 40); cx.fill();
+      cx.fillStyle = '#ffb3c1'; cx.beginPath(); cx.moveTo(kop + s * 20, my - 54); cx.lineTo(kop + s * 32, my - 56 - 20 * plat); cx.lineTo(kop + s * 34, my - 44); cx.fill();
+    }
+  } else {
+    for (const s of [-1, 1]) { cx.fillStyle = 'rgba(0,0,0,.25)'; cx.beginPath(); cx.ellipse(kop + s * 34, my - 30 + (schrik ? -8 : 0), 13, 28, s * .35, 0, 7); cx.fill(); }
+    cx.fillStyle = '#f5e6d0'; cx.beginPath(); cx.ellipse(kop - 6, my - 10, 22, 15, 0, 0, 7); cx.fill();
+  }
+  // gezicht
+  cx.fillStyle = '#222';
+  if (blij && !schrik) { cx.strokeStyle = '#222'; cx.lineWidth = 3; for (const s of [-1, 1]) { cx.beginPath(); cx.arc(kop - 4 + s * 14, my - 30, 6, Math.PI * 1.1, Math.PI * 1.9); cx.stroke(); } }
+  else for (const s of [-1, 1]) { cx.beginPath(); cx.arc(kop - 4 + s * 14, my - 30, schrik ? 7 : 5, 0, 7); cx.fill(); cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(kop - 2 + s * 14, my - 32, 1.8, 0, 7); cx.fill(); cx.fillStyle = '#222'; }
+  cx.fillStyle = D.soort === 'kat' ? '#ff8fab' : '#222'; cx.beginPath(); cx.ellipse(kop - 6, my - 16, 6, 4, 0, 0, 7); cx.fill();
+  cx.strokeStyle = '#222'; cx.lineWidth = 2; cx.beginPath();
+  if (schrik) cx.arc(kop - 6, my - 2, 5, 0, 7); else { cx.moveTo(kop - 14, my - 8); cx.quadraticCurveTo(kop - 10, my - 4, kop - 6, my - 10); cx.quadraticCurveTo(kop - 2, my - 4, kop + 2, my - 8); }
+  cx.stroke();
+  if (D.soort === 'kat') { cx.strokeStyle = 'rgba(40,40,40,.6)'; cx.lineWidth = 1; for (const s of [-1, 1]) for (let i = -1; i <= 1; i++) { cx.beginPath(); cx.moveTo(kop - 6 + s * 10, my - 14); cx.lineTo(kop - 6 + s * 34, my - 16 + i * 6); cx.stroke(); } }
+  if (blij && D.soort === 'hond' && !schrik) { cx.fillStyle = '#ff6f91'; cx.beginPath(); cx.ellipse(kop - 4, my - 2, 5, 8, 0, 0, Math.PI); cx.fill(); }
+  // tekstwolkje bij een reactie
+  if (reactie) {
+    const tekst = t(schrik ? 'Au! 😿' : D.soort === 'hond' ? 'Woef! 🐶' : 'Prrr… 🐱');
+    cx.font = '700 15px system-ui,sans-serif'; const tw = cx.measureText(tekst).width + 20;
+    cx.fillStyle = '#fff'; rondeRect(kop - tw / 2, my - 110, tw, 28, 12); cx.fill();
+    cx.fillStyle = schrik ? '#b3261e' : '#16233a'; cx.textAlign = 'center'; cx.fillText(tekst, kop, my - 91);
+  }
+  if (afw && !reactie) { cx.fillStyle = '#b3261e'; cx.font = '900 26px system-ui,sans-serif'; cx.textAlign = 'center'; cx.fillText('?', kop + 40, my - 70); }
+
+  // hartjes die opstijgen
+  D.harten = D.harten.filter(h => nu - h.t < 1600);
+  for (const h of D.harten) { const tt = (nu - h.t) / 1000; cx.globalAlpha = Math.max(0, 1 - tt / 1.6); cx.fillStyle = '#ff4d6d'; cx.font = '22px system-ui'; cx.textAlign = 'center'; cx.fillText('♥', mx + h.x, my - 70 - h.v * tt); }
+  cx.globalAlpha = 1;
+
+  // de hand: aait van de kop naar de staart naarmate je verder draait
+  const p = Math.min(1, f);
+  const hx = kop + 40 + (mx + lijf - 30 - kop - 40) * p, hy = my - 52 + Math.sin(p * Math.PI) * 6 + (schrik ? -20 : 0);
+  cx.save(); cx.translate(hx, hy); cx.rotate(-.15 + p * .3);
+  cx.fillStyle = afw || schrik ? '#d6453d' : '#e9b48c';
+  rondeRect(-30, -14, 60, 26, 12); cx.fill();
+  for (let i = 0; i < 4; i++) { rondeRect(-34 + i * 2, -12 + i * 7, 18, 7, 3.5); cx.fill(); }
+  cx.fillRect(20, -10, 34, 16);                                // pols
+  cx.restore();
+  // klein draaiknopje als hulp
+  const kx = W - 46, ky = H - 46, r = 22;
+  cx.fillStyle = 'rgba(255,255,255,.85)'; cx.beginPath(); cx.arc(kx, ky, r + 8, 0, 7); cx.fill();
+  cx.strokeStyle = f >= .875 ? '#1f9d6b' : '#2f6fde'; cx.lineWidth = 4; cx.beginPath(); cx.arc(kx, ky, r, -Math.PI / 2, -Math.PI / 2 + rad(Math.min(1.1, f) * 90)); cx.stroke();
+  cx.strokeStyle = afw ? '#d6453d' : '#e9b48c'; cx.lineWidth = 8; cx.lineCap = 'round';
+  const hh = rad(Math.min(1.1, f) * 90);
+  cx.beginPath(); cx.moveTo(kx - 14 * Math.sin(hh), ky + 14 * Math.cos(hh)); cx.lineTo(kx + 14 * Math.sin(hh), ky - 14 * Math.cos(hh)); cx.stroke(); cx.lineCap = 'butt';
 }
 
 // =====================================================================================
@@ -1251,17 +2184,18 @@ async function schrijfStatus() {
     const laatste = echte.length ? dagSleutel(new Date(echte[echte.length - 1].start)) : '';
     const c = await caches.open('rewin-status');
     await c.put(new URL('status.json', location.href).href, new Response(JSON.stringify({
-      laatsteDag: laatste, herinnering: inst.herinnering, tijd: inst.tijd, meldDag: inst.meldDag
+      laatsteDag: laatste, herinnering: inst.herinnering, tijd: inst.tijd, meldDag: inst.meldDag,
+      tekst: t('Je hebt vandaag nog niet geoefend. Even 10 minuten voor je pols?')
     }), { headers: { 'Content-Type': 'application/json' } }));
   } catch (e) {}
 }
 
 async function vraagMeldingen() {
-  if (!('Notification' in window)) { alertZacht('Meldingen worden hier niet ondersteund.'); return; }
+  if (!('Notification' in window)) { alertZacht(t('Meldingen worden hier niet ondersteund.')); return; }
   const r = await Notification.requestPermission();
-  if (r !== 'granted') { alertZacht('Meldingen staan uit. Je kunt ze aanzetten bij de site-instellingen van Chrome.'); return; }
+  if (r !== 'granted') { alertZacht(t('Meldingen staan uit. Je kunt ze aanzetten bij de site-instellingen van Chrome.')); return; }
   await registreerAchtergrond();
-  if (swReg) swReg.showNotification('Rewin', { body: 'Meldingen staan aan. Je krijgt een seintje als je nog niet geoefend hebt.', icon: 'icon-192.png', tag: 'test' });
+  if (swReg) swReg.showNotification('Rewin', { body: t('Meldingen staan aan. Je krijgt een seintje als je nog niet geoefend hebt.'), icon: 'icon-192.png', tag: 'test' });
   tekenMeldingKnop();
 }
 
@@ -1275,7 +2209,7 @@ async function registreerAchtergrond() {
 
 function tekenMeldingKnop() {
   const aan = 'Notification' in window && Notification.permission === 'granted';
-  $('iMeldingKnop').textContent = aan ? 'Meldingen staan aan ✓ (test)' : 'Meldingen toestaan';
+  $('iMeldingKnop').textContent = aan ? t('Meldingen staan aan ✓ (test)') : t('Meldingen toestaan');
 }
 
 // Zolang de app open is: zelf controleren
@@ -1287,7 +2221,7 @@ function controleerHerinnering() {
   if (nu.getHours() * 60 + nu.getMinutes() < uu * 60 + mm) return;
   if (sessies.some(s => !s.demo && dagSleutel(new Date(s.start)) === vandaag) || inst.meldDag === vandaag) return;
   inst.meldDag = vandaag; bewaarInst();
-  swReg.showNotification('Rewin', { body: 'Je hebt vandaag nog niet geoefend. Even 10 minuten voor je pols?', icon: 'icon-192.png', tag: 'herinnering' });
+  swReg.showNotification('Rewin', { body: t('Je hebt vandaag nog niet geoefend. Even 10 minuten voor je pols?'), icon: 'icon-192.png', tag: 'herinnering' });
 }
 
 // =====================================================================================
@@ -1299,7 +2233,7 @@ function kiesTab(naam) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('actief', t.id === 'tab-' + naam));
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('actief', b.dataset.tab === naam));
   if (naam === 'overzicht') tekenOverzicht();
-  if (naam === 'spel') spelScore();
+  if (naam === 'spel') { if (spelOpen) spelScore(); else { menuSig = ''; tekenSpelMenu(); } }
   stuurLiveModus();
   window.scrollTo(0, 0);
 }
@@ -1308,9 +2242,7 @@ function alertZacht(t) { alert(t); }
 function tekenAlles() { tekenVerbinding(); tekenOverzicht(); tekenLive(); spelScore(); }
 
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => kiesTab(b.dataset.tab)));
-document.querySelectorAll('#spelKeuze .chip').forEach(c => c.addEventListener('click', () => {
-  inst.spel = c.dataset.spel; bewaarInst(); spel.ramen.laag = null; spelScore();
-}));
+$('spelTerug').addEventListener('click', sluitSpel);
 $('verbindKnop').addEventListener('click', () => st.demoActief ? kiesTab('instellingen') : (st.verbonden ? kiesTab('instellingen') : verbind()));
 $('iVerbindKnop').addEventListener('click', () => st.verbonden ? verbreek() : verbind());
 $('weekTerug').addEventListener('click', () => { weekVerschuiving--; tekenOverzicht(); });
@@ -1327,13 +2259,29 @@ $('iOmPitch').addEventListener('change', e => { inst.omPitch = e.target.checked;
 $('iOmYaw').checked = inst.omYaw;
 $('iOmYaw').addEventListener('change', e => { inst.omYaw = e.target.checked; bewaarInst(); });
 $('iHelder').value = inst.helderheid;
+const helderTekst = () => { $('iHelderTekst').textContent = Math.round(inst.helderheid / 120 * 100) + '%'; };
+$('iHelder').addEventListener('input', e => { inst.helderheid = +e.target.value; helderTekst(); });
 $('iHelder').addEventListener('change', e => { inst.helderheid = +e.target.value; bewaarInst(); stuur('HELDERHEID=' + inst.helderheid); });
+// trilmotor: 0-100% in de app = 0-255 op de Nano
+$('iTril').value = inst.tril;
+const trilTekst = () => { $('iTrilTekst').textContent = inst.tril ? inst.tril + '%' : t('uit'); };
+$('iTril').addEventListener('input', e => { inst.tril = +e.target.value; trilTekst(); });
+$('iTril').addEventListener('change', e => { inst.tril = +e.target.value; bewaarInst(); stuur('TRIL=' + Math.round(inst.tril * 2.55)); });
+$('iTrilTest').addEventListener('click', () => { stuur('TRIL=' + Math.round(inst.tril * 2.55)); stuur('TRILTEST'); });
+// taal
+$('iTaal').value = inst.taal;
+$('iTaal').addEventListener('change', e => {
+  inst.taal = e.target.value; bewaarInst();
+  zetTaal(); zetBtUitleg(); trilTekst(); tekenMeldingKnop(); menuSig = ''; tekenSpelMenu(); tekenAlles(); schrijfStatus();
+  if (spel.cocktail.klant) { const k = spel.cocktail.klant; k.zin = kies(inst.taal === 'en' ? ZINNEN_EN : ZINNEN).replace('{d}', spel.cocktail.drank.naam); }
+});
 $('iMeldingKnop').addEventListener('click', vraagMeldingen);
 $('iDemo').checked = false;
 $('iDemo').addEventListener('change', e => { inst.demo = e.target.checked; bewaarInst(); e.target.checked ? demoStart() : demoStop(); });
 
 $('iExport').addEventListener('click', () => {
-  const kop = 'datum;tijd;oefening;herhalingen;doel;duur_s;reden;tempo_gem;aantal_afwijkingen;pct_tijd_afwijkend;netjes_pct';
+  const kop = inst.taal === 'en' ? 'date;time;exercise;repetitions;target;duration_s;reason;avg_speed;deviations;pct_time_deviating;neat_pct'
+    : 'datum;tijd;oefening;herhalingen;doel;duur_s;reden;tempo_gem;aantal_afwijkingen;pct_tijd_afwijkend;netjes_pct';
   const rijen = sessies.filter(s => !s.demo).map(s => {
     const d = new Date(s.start);
     return [dagSleutel(d), `${p2(d.getHours())}:${p2(d.getMinutes())}`, s.oef, s.herh, s.doel, s.duur.toFixed(0), s.reden,
@@ -1343,7 +2291,7 @@ $('iExport').addEventListener('click', () => {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `rewin-${dagSleutel(new Date())}.csv`; a.click();
 });
 $('iWis').addEventListener('click', () => {
-  if (!confirm('Weet je zeker dat je alle oefengegevens wilt wissen?')) return;
+  if (!confirm(t('Weet je zeker dat je alle oefengegevens wilt wissen?'))) return;
   sessies = []; bewaarSessies(); tekenOverzicht();
 });
 
@@ -1351,14 +2299,14 @@ let installPrompt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
 $('iInstalleer').addEventListener('click', async () => {
   if (installPrompt) { installPrompt.prompt(); installPrompt = null; }
-  else alertZacht('Tik in Chrome rechtsboven op ⋮ en kies "Toevoegen aan startscherm" (of "App installeren").');
+  else alertZacht(t('Tik in Chrome rechtsboven op ⋮ en kies "Toevoegen aan startscherm" (of "App installeren").'));
 });
 
 document.addEventListener('visibilitychange', () => { stuurLiveModus(); if (!document.hidden) controleerHerinnering(); });
 
-$('btUitleg').textContent = btKan()
-  ? 'Zet Bluetooth op je telefoon aan en tik op Verbinden. Kies "Rewin" in de lijst.'
-  : 'Deze browser kan geen Bluetooth. Gebruik Chrome op een Android-telefoon (op iPhone werkt het niet). De demo-modus werkt wel overal.';
+const zetBtUitleg = () => { $('btUitleg').textContent = btKan()
+  ? t('Zet Bluetooth op je telefoon aan en tik op Verbinden. Kies "Rewin" in de lijst.')
+  : t('Deze browser kan geen Bluetooth. Gebruik Chrome op een Android-telefoon (op iPhone werkt het niet). De demo-modus werkt wel overal.'); };
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').then(r => { swReg = r; return navigator.serviceWorker.ready; })
@@ -1369,8 +2317,11 @@ if ('serviceWorker' in navigator) {
 if (sessies.some(s => s.demo)) { sessies = sessies.filter(s => !s.demo); bewaarSessies(); }
 inst.demo = false;
 
+spelNieuweRonde();
+zetTaal(); zetBtUitleg(); helderTekst(); trilTekst();
 tekenMeldingKnop();
 tekenAlles();
+tekenSpelMenu();
 schrijfStatus();
 setInterval(controleerHerinnering, 60 * 1000);
 requestAnimationFrame(spelFrame);

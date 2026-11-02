@@ -3,7 +3,7 @@
 //  - geeft een herinnering als je vandaag nog niet geoefend hebt (periodieke achtergrond-sync;
 //    Chrome bepaalt zelf hoe vaak dat mag, dus het is niet op de minuut precies)
 
-const CACHE = 'rewin-v2';
+const CACHE = 'rewin-v4';
 const BESTANDEN = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 const STATUS_URL = new URL('status.json', self.registration.scope).href;
 
@@ -51,7 +51,7 @@ async function controleerHerinnering() {
   const naTijd = nu.getHours() * 60 + nu.getMinutes() >= uu * 60 + mm;
   if (!s.herinnering || s.laatsteDag === vandaag || s.meldDag === vandaag || !naTijd) return;
   await self.registration.showNotification('Rewin', {
-    body: 'Je hebt vandaag nog niet geoefend. Even 10 minuten voor je pols?',
+    body: s.tekst || 'Je hebt vandaag nog niet geoefend. Even 10 minuten voor je pols?',
     icon: 'icon-192.png',
     badge: 'icon-192.png',
     tag: 'herinnering'
