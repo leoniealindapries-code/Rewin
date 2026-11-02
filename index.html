@@ -98,6 +98,7 @@ input[type=range]{width:140px}
 .schakel:checked::after{left:21px}
 .knop{border:0;border-radius:12px;padding:11px 14px;font-weight:600;background:var(--blauw);color:#fff;cursor:pointer;width:100%;margin-top:8px}
 .knop.licht{background:var(--blauw-licht);color:var(--inkt)}
+.knop:disabled{opacity:.45}
 .knop.rood{background:var(--rood-licht);color:var(--rood)}
 /* onderbalk */
 nav{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--kaart);border-top:1px solid var(--lijn);
@@ -233,7 +234,7 @@ nav button.actief{color:var(--blauw);font-weight:600}
       <div class="veld"><label><span data-t>Verbinding</span><small id="iVerbinding">Niet verbonden</small></label></div>
       <div class="veld"><label><span data-t>Batterij</span><small id="iBatterij">onbekend</small></label></div>
       <div class="veld"><label for="iHelder"><span data-t>Helderheid LED-ring</span><small id="iHelderTekst"></small></label><input type="range" id="iHelder" min="5" max="120" value="25"></div>
-      <div class="veld"><label for="iTril"><span data-t>Sterkte trilmotor</span><small id="iTrilTekst"></small></label><input type="range" id="iTril" min="0" max="100" step="5" value="0"></div>
+      <div class="veld"><label for="iTril"><span data-t>Trilmotor</span><small id="iTrilTekst"></small></label><input type="checkbox" class="schakel" id="iTril"></div>
       <button class="knop licht" id="iTrilTest" data-t>Trilling testen</button>
       <p class="zacht klein" style="margin:8px 0 0" data-t>Zet de trilmotor pas aan als hij via een transistor en diode is aangesloten. Anders kunnen de sensoren opnieuw opstarten.</p>
       <button class="knop" id="iVerbindKnop">Verbinden</button>
@@ -303,7 +304,7 @@ const EN = {
   'herhaling': 'repetition', 'hoek': 'angle', 'tempo °/s': 'speed °/s',
   'Je bent nu bij': 'You are now doing', 'Alle spellen': 'All games', 'Taal van de app': 'App language',
   'Verbinding': 'Connection', 'Batterij': 'Battery', 'Helderheid LED-ring': 'LED ring brightness',
-  'Sterkte trilmotor': 'Vibration strength', 'Trilling testen': 'Test vibration', 'uit': 'off',
+  'Trilmotor': 'Vibration motor', 'aan': 'on', 'Trilling testen': 'Test vibration', 'uit': 'off',
   'Zet de trilmotor pas aan als hij via een transistor en diode is aangesloten. Anders kunnen de sensoren opnieuw opstarten.':
     'Only turn on the vibration motor once it is connected through a transistor and a diode. Otherwise the sensors may restart.',
   'Doel en herinnering': 'Goal and reminder', 'Keer oefenen per dag': 'Sessions per day', 'Het advies is 3 keer per dag': 'The advice is 3 times a day',
@@ -587,7 +588,7 @@ async function koppel() {
   st.verbonden = true; handmatigLos = false; buffer = '';
   stuur('HALLO');
   stuur('HELDERHEID=' + inst.helderheid);          // instellingen opnieuw sturen (de Nano vergeet ze bij uitzetten)
-  stuur('TRIL=' + Math.round(inst.tril * 2.55));
+  stuur('TRIL=' + (inst.tril ? 255 : 0));
   stuurLiveModus(true);
   tekenVerbinding();
 }
@@ -2319,12 +2320,13 @@ $('iHelder').value = inst.helderheid;
 const helderTekst = () => { $('iHelderTekst').textContent = Math.round(inst.helderheid / 120 * 100) + '%'; };
 $('iHelder').addEventListener('input', e => { inst.helderheid = +e.target.value; helderTekst(); });
 $('iHelder').addEventListener('change', e => { inst.helderheid = +e.target.value; bewaarInst(); stuur('HELDERHEID=' + inst.helderheid); });
-// trilmotor: 0-100% in de app = 0-255 op de Nano
-$('iTril').value = inst.tril;
-const trilTekst = () => { $('iTrilTekst').textContent = inst.tril ? inst.tril + '%' : t('uit'); };
-$('iTril').addEventListener('input', e => { inst.tril = +e.target.value; trilTekst(); });
-$('iTril').addEventListener('change', e => { inst.tril = +e.target.value; bewaarInst(); stuur('TRIL=' + Math.round(inst.tril * 2.55)); });
-$('iTrilTest').addEventListener('click', () => { stuur('TRIL=' + Math.round(inst.tril * 2.55)); stuur('TRILTEST'); });
+// trilmotor: alleen aan (volle kracht, 255) of uit (0). Zachter trilt de motor niet.
+inst.tril = inst.tril ? 100 : 0;                   // oude schuif-waarde omzetten naar aan/uit
+const trilWaarde = () => (inst.tril ? 255 : 0);
+$('iTril').checked = !!inst.tril;
+const trilTekst = () => { $('iTrilTekst').textContent = t(inst.tril ? 'aan' : 'uit'); $('iTrilTest').disabled = !inst.tril; };
+$('iTril').addEventListener('change', e => { inst.tril = e.target.checked ? 100 : 0; bewaarInst(); trilTekst(); stuur('TRIL=' + trilWaarde()); });
+$('iTrilTest').addEventListener('click', () => { stuur('TRIL=' + trilWaarde()); stuur('TRILTEST'); });
 // taal
 $('iTaal').value = inst.taal;
 $('iTaal').addEventListener('change', e => {
