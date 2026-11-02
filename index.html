@@ -118,6 +118,10 @@ nav button.actief{color:var(--blauw);font-weight:600}
 .app.anders{opacity:.6}
 .spelkop{display:flex;align-items:center;gap:12px;margin-bottom:6px}
 .terug{border:0;background:var(--blauw-licht);border-radius:10px;padding:7px 12px;font-weight:600;cursor:pointer}
+.foutbanner{background:var(--rood-licht);border:2px solid var(--rood);border-radius:16px;padding:14px 16px;margin-bottom:14px;color:var(--inkt)}
+.foutbanner b{display:block;color:var(--rood);font-size:18px;margin-bottom:4px}
+.foutbanner p{margin:4px 0}
+.foutbanner .knop{background:var(--rood);margin-top:10px}
 .verborgen{display:none!important}
 </style>
 </head>
@@ -128,6 +132,12 @@ nav button.actief{color:var(--blauw);font-weight:600}
 </header>
 
 <main>
+  <div id="foutBanner" class="foutbanner verborgen" role="alert">
+    <b id="foutTitel"></b>
+    <p id="foutUitleg"></p>
+    <p class="zacht klein" id="foutActie"></p>
+    <button class="knop" id="foutOk">OK</button>
+  </div>
   <!-- ================= OVERZICHT ================= -->
   <section class="tab actief" id="tab-overzicht">
     <div id="herinneringBanner" class="melding oranje verborgen" data-t>Je hebt vandaag nog niet geoefend. Even 10 minuten voor je pols?</div>
@@ -313,6 +323,19 @@ const EN = {
   'Beginstand staat. Druk nog een keer op start om te beginnen.': 'Starting position set. Press start again to begin.',
   'Bezig met oefenen': 'Exercising', 'Gestopt': 'Stopped',
   'Klaar! Druk op de oefeningknop voor de volgende oefening.': 'Done! Press the exercise button for the next exercise.',
+  'Gestopt door een fout. Druk op start voor een nieuwe beginstand.': 'Stopped because of an error. Press start to set a new starting position.',
+  // foutmeldingen
+  'handsensor': 'hand sensor', 'polssensor': 'wrist sensor',
+  'De {s} is vanzelf opnieuw opgestart en is zijn beginpunt kwijt.': 'The {s} restarted by itself and has lost its starting point.',
+  'De {s} gaf even geen metingen en is opnieuw opgestart. Hij is zijn beginpunt kwijt.': 'The {s} stopped measuring for a moment and was restarted. It has lost its starting point.',
+  'De {s} maakte een plotselinge sprong in de meting. Hij is zijn beginpunt kwijt.': 'The {s} made a sudden jump in its measurement. It has lost its starting point.',
+  'De {s} is niet gevonden. Controleer de kabeltjes en zet Rewin opnieuw aan.': 'The {s} was not found. Check the wires and turn Rewin on again.',
+  'Er is een onbekende fout ({c}).': 'An unknown error occurred ({c}).',
+  'De oefening is gestopt, want de metingen kloppen niet meer. Leg je arm recht op tafel en druk op start om een nieuwe beginstand te zetten.':
+    'The exercise has stopped because the measurements are no longer correct. Rest your arm straight on the table and press start to set a new starting position.',
+  'Lukt het niet? Haal de stroom eraf en sluit hem opnieuw aan.': 'Still not working? Disconnect the power and connect it again.',
+  '⚠️ Foutcode F{c}': '⚠️ Error code F{c}', 'De oefening is gestopt.': 'The exercise has stopped.',
+  'Druk op start voor een nieuwe beginstand.': 'Press start for a new starting position.', 'gestopt door fout': 'stopped by error',
   // verbinding
   'opzij': 'sideways', 'op/neer': 'up/down', 'draaien': 'rotating', 'pols {as}': 'wrist {as}',
   'Bluetooth werkt hier niet. Open deze app in Chrome op een Android-telefoon. Op een iPhone kan het helaas niet. Je kunt wel de demo-modus proberen (Instellingen).':
@@ -446,7 +469,8 @@ const TOESTAND_TEKST = {
   2: 'Beginstand staat. Druk nog een keer op start om te beginnen.',
   3: 'Bezig met oefenen',
   4: 'Gestopt',
-  5: 'Klaar! Druk op de oefeningknop voor de volgende oefening.'
+  5: 'Klaar! Druk op de oefeningknop voor de volgende oefening.',
+  6: 'Gestopt door een fout. Druk op start voor een nieuwe beginstand.'
 };
 
 // =====================================================================================
@@ -464,11 +488,12 @@ function verwerk(regel) {
     case 'T':
       { const vorige = st.oef; st.toestand = +p[1]; st.oef = +p[2] || st.oef; if (st.oef !== vorige) { spel.ramen.laag = null; spelScore(); } tekenSpelMenu(); }
       if (st.toestand === 2 || st.toestand === 0) { st.herhLive = 0; spelNieuweRonde(); }
+      if (st.toestand >= 1 && st.toestand <= 3 && st.fout) { st.fout = null; tekenFout(); }   // nieuwe baseline: fout opgelost
       if (st.toestand === 5) spelKlaar();
       break;
     case 'L':
       st.live = { t: n(1), oef: +p[2], herh: +p[3], hoek: n(4), yaw: n(5), pitch: n(6), roll: n(7),
-        tempo: n(8), afw: p[9] === '1', uit: p[10] !== '0', doel: n(11) || (+p[2] === 3 ? 90 : 45), omhoog: p[12] === '1' };
+        tempo: n(8), afw: p[9] === '1', uit: p[10] !== '0', doel: n(11) || (+p[2] === 3 ? 80 : 45), omhoog: p[12] === '1' };
       st.liveTijd = performance.now();
       st.oef = st.live.oef; st.herhLive = st.live.herh;
       if (st.toestand !== 3) st.toestand = 3;
@@ -503,6 +528,12 @@ function verwerk(regel) {
       stuur('ONTV,' + id);
       break;
     }
+    case 'F':
+      st.fout = { code: +p[1], sensor: p[2] || '', tijd: Date.now() };
+      st.foutGezien = false; st.toestand = 6; st.live = null;
+      if (navigator.vibrate) try { navigator.vibrate([250, 120, 250]); } catch (e) {}
+      tekenFout();
+      break;
     case 'B':
       st.bat = n(2) >= 0 ? { v: n(1), pct: n(2) } : null;
       break;
@@ -609,6 +640,27 @@ function stuurLiveModus(forceer) {
   stuur(snel ? 'LIVE=1' : 'LIVE=0');
 }
 
+// ---Foutmelding van Rewin (sensor is zijn oorsprong kwijt) ---------------------------------
+const FOUT_TEKST = {
+  1: 'De {s} is vanzelf opnieuw opgestart en is zijn beginpunt kwijt.',
+  2: 'De {s} gaf even geen metingen en is opnieuw opgestart. Hij is zijn beginpunt kwijt.',
+  3: 'De {s} maakte een plotselinge sprong in de meting. Hij is zijn beginpunt kwijt.',
+  4: 'De {s} is niet gevonden. Controleer de kabeltjes en zet Rewin opnieuw aan.'
+};
+function foutUitleg(f) {
+  const sensor = t(f.sensor === 'pols' ? 'polssensor' : 'handsensor');
+  return t(FOUT_TEKST[f.code] || 'Er is een onbekende fout ({c}).', { s: sensor, c: f.code });
+}
+const FOUT_ACTIE = 'De oefening is gestopt, want de metingen kloppen niet meer. Leg je arm recht op tafel en druk op start om een nieuwe beginstand te zetten.';
+function tekenFout() {
+  const f = st.fout, toon = !!(f && !st.foutGezien);
+  $('foutBanner').classList.toggle('verborgen', !toon);
+  if (!f) return;
+  $('foutTitel').textContent = t('⚠️ Foutcode F{c}', { c: f.code });
+  $('foutUitleg').textContent = foutUitleg(f);
+  $('foutActie').textContent = t(f.code === 4 ? 'Lukt het niet? Haal de stroom eraf en sluit hem opnieuw aan.' : FOUT_ACTIE);
+}
+
 function tekenVerbinding() {
   const aan = !!(st.verbonden || st.demoActief);
   $('verbindKnop').classList.toggle('aan', aan);
@@ -676,7 +728,7 @@ function demoTick() {
   }
   if (demo.fase !== 'bezig') return;
 
-  const doel = demo.oef === 3 ? 90 : 45;
+  const doel = demo.oef === 3 ? 80 : 45;
   const OP = 2.6, BOVEN = .6, NEER = 4.2, RUST = 1.2, RONDE = OP + BOVEN + NEER + RUST;
   const tr = (nu - demo.t0) / 1000, r = tr % RONDE, nr = Math.floor(tr / RONDE);
   let f, omhoog;
@@ -820,7 +872,7 @@ function tekenOverzicht() {
     const wanneer = dagSleutel(d) === vandaagS ? t('Vandaag') : `${DAGEN[d.getDay()]} ${d.getDate()} ${MAANDEN[d.getMonth()]}`;
     const nj = Math.round(100 - s.pct);
     return `<div class="sessie"><div class="badge" style="background:var(--oef${s.oef})">${s.oef}</div>
-      <div class="info"><b>${t('{a} van {b} herhalingen', { a: s.herh, b: s.doel })}</b><div class="zacht klein">${wanneer} ${p2(d.getHours())}:${p2(d.getMinutes())} · ${Math.round(s.duur / 60 * 10) / 10} min${s.afw ? ' · ' + t('{n}× gecorrigeerd', { n: s.afw }) : ''}</div></div>
+      <div class="info"><b>${t('{a} van {b} herhalingen', { a: s.herh, b: s.doel })}</b><div class="zacht klein">${wanneer} ${p2(d.getHours())}:${p2(d.getMinutes())} · ${Math.round(s.duur / 60 * 10) / 10} min${s.afw ? ' · ' + t('{n}× gecorrigeerd', { n: s.afw }) : ''}${s.reden === 'fout' ? ' · ⚠️ ' + t('gestopt door fout') : ''}</div></div>
       <div class="pct" style="color:${nj >= 85 ? 'var(--groen)' : nj >= 65 ? 'var(--oranje)' : 'var(--rood)'}">${nj}%</div></div>`;
   }).join('') : `<div class="leeg">${t('Nog geen oefeningen. Verbind je Rewin en begin met oefenen. De resultaten komen hier vanzelf.')}</div>`;
 }
@@ -829,7 +881,7 @@ function tekenOverzicht() {
 //  LIVE: hand tekenen en tips geven
 // =====================================================================================
 const GRENS = 5;
-const TEMPO = { 1: { op: [9, 22.5], neer: [3.75, 7.5] }, 2: { op: [9, 22.5], neer: [3.75, 7.5] }, 3: { op: [22.5, 45], neer: [9, 18] } };
+const TEMPO = { 1: { op: [9, 22.5], neer: [3.75, 7.5] }, 2: { op: [9, 22.5], neer: [3.75, 7.5] }, 3: { op: [20, 40], neer: [8, 16] } };   // oefening 3: 80 graden in 2-4 s op, 5-10 s terug
 
 function tipVoor(l) {
   if (!l) return { soort: 'info', tekst: t('Wacht op je Rewin…'), klein: '' };
@@ -873,13 +925,14 @@ function tekenLive() {
   else status = `${t('Oefening')} ${st.oef} · ${t(TOESTAND_TEKST[st.toestand] || '')}`;
   $('liveStatus').textContent = status;
 
-  const tip = st.toestand === 3 ? tipVoor(l) : { soort: 'info', tekst: st.toestand === 5 ? t('Klaar! Mooi gedaan. 🎉') : t('Hier zie je hoe je hand beweegt zodra je begint.'), klein: '' };
+  const tip = st.toestand === 6 && st.fout ? { soort: 'fout', tekst: t('⚠️ Foutcode F{c}', { c: st.fout.code }) + ' – ' + foutUitleg(st.fout), klein: t(FOUT_ACTIE) }
+    : st.toestand === 3 ? tipVoor(l) : { soort: 'info', tekst: st.toestand === 5 ? t('Klaar! Mooi gedaan. 🎉') : t('Hier zie je hoe je hand beweegt zodra je begint.'), klein: '' };
   const tipEl = $('liveTip');
   tipEl.className = 'tip ' + tip.soort;
   tipEl.innerHTML = `${tip.tekst}${tip.klein ? `<small>${tip.klein}</small>` : ''}`;
 
   const oef = l ? l.oef : st.oef;
-  const doel = l ? l.doel : (oef === 3 ? 90 : 45);
+  const doel = l ? l.doel : (oef === 3 ? 80 : 45);
   const hoek = l ? Math.abs(l.hoek) : 0;
   const pitch = l && l.uit ? l.pitch * (inst.omPitch ? -1 : 1) : 0;
   const yaw = l && l.uit ? l.yaw * (inst.omYaw ? -1 : 1) : 0;
@@ -1247,6 +1300,9 @@ function spelFrame(nu) {
   if (verkeerd) {
     cx.fillStyle = 'rgba(22,35,58,.35)'; cx.fillRect(0, 0, W, H);
     infoVak(W, H, [t('Dit spel hoort bij oefening {n}', { n: nodig }), t('Druk op de oefeningknop van je'), t('Rewin tot lampje {n} brandt.', { n: nodig })]);
+  } else if (st.toestand === 6 && st.fout) {
+    cx.fillStyle = 'rgba(180,30,30,.35)'; cx.fillRect(0, 0, W, H);
+    infoVak(W, H, [t('⚠️ Foutcode F{c}', { c: st.fout.code }), t('De oefening is gestopt.'), t('Druk op start voor een nieuwe beginstand.')]);
   } else if (!bezig) {
     const pr = { n, g: goud, km: spel.lift.km, m: spel.slot.munten, d: spel.dier.naam, l: spel.dier.liefde };
     const regels = spel.klaar ? [t('Klaar! 🎉'), t({ ballon: '{n} bloemen, {g} goud', lift: '{n} ritjes, {km} km', ramen: 'Het raam is schoon!', molen: '{n} zakken meel, {g} goud', cocktail: '{n} cocktails, {g}× fooi', slot: '{m} munten gewonnen', dier: '{d}: {l}% liefde 💖' }[sp], pr)]
@@ -2243,6 +2299,7 @@ function tekenAlles() { tekenVerbinding(); tekenOverzicht(); tekenLive(); spelSc
 
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => kiesTab(b.dataset.tab)));
 $('spelTerug').addEventListener('click', sluitSpel);
+$('foutOk').addEventListener('click', () => { st.foutGezien = true; tekenFout(); });
 $('verbindKnop').addEventListener('click', () => st.demoActief ? kiesTab('instellingen') : (st.verbonden ? kiesTab('instellingen') : verbind()));
 $('iVerbindKnop').addEventListener('click', () => st.verbonden ? verbreek() : verbind());
 $('weekTerug').addEventListener('click', () => { weekVerschuiving--; tekenOverzicht(); });
@@ -2272,7 +2329,7 @@ $('iTrilTest').addEventListener('click', () => { stuur('TRIL=' + Math.round(inst
 $('iTaal').value = inst.taal;
 $('iTaal').addEventListener('change', e => {
   inst.taal = e.target.value; bewaarInst();
-  zetTaal(); zetBtUitleg(); trilTekst(); tekenMeldingKnop(); menuSig = ''; tekenSpelMenu(); tekenAlles(); schrijfStatus();
+  zetTaal(); zetBtUitleg(); trilTekst(); tekenMeldingKnop(); menuSig = ''; tekenSpelMenu(); tekenAlles(); schrijfStatus(); tekenFout();
   if (spel.cocktail.klant) { const k = spel.cocktail.klant; k.zin = kies(inst.taal === 'en' ? ZINNEN_EN : ZINNEN).replace('{d}', spel.cocktail.drank.naam); }
 });
 $('iMeldingKnop').addEventListener('click', vraagMeldingen);
