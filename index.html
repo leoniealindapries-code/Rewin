@@ -109,6 +109,7 @@ nav button.actief{color:var(--blauw);font-weight:600}
 .oefkaart{margin-bottom:16px}
 .groot-badge{width:52px;height:52px;border-radius:15px;font-size:24px}
 .oefnaam{font-size:20px;font-weight:700}
+.oefrij{display:flex;align-items:center;gap:14px;padding:12px 16px}
 .groeptitel{font-size:13px;font-weight:700;color:var(--zacht);text-transform:uppercase;letter-spacing:.5px;margin:6px 2px 10px}
 .appgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 6px;margin-bottom:20px}
 .app{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:0;color:var(--inkt);font:inherit}
@@ -185,6 +186,10 @@ nav button.actief{color:var(--blauw);font-weight:600}
 
   <!-- ================= LIVE ================= -->
   <section class="tab" id="tab-live">
+    <div class="kaart oefrij">
+      <div class="badge groot-badge" id="liveOefBadge">?</div>
+      <div><div class="oefnaam" id="liveOefNaam"></div><div class="zacht klein" id="liveOefUitleg"></div></div>
+    </div>
     <div class="status" id="liveStatus">Verbind eerst met je Rewin (knop rechtsboven).</div>
     <div class="tip info" id="liveTip">Hier zie je straks hoe je hand beweegt.</div>
     <div class="panelen">
@@ -485,9 +490,17 @@ function verwerk(regel) {
   switch (p[0]) {
     case 'I':
       st.naam = p[1]; st.oef = +p[3] || st.oef; st.opstartId = p[4] || st.opstartId;
+      tekenSpelMenu();
       break;
     case 'T':
-      { const vorige = st.oef; st.toestand = +p[1]; st.oef = +p[2] || st.oef; if (st.oef !== vorige) { spel.ramen.laag = null; spelScore(); } tekenSpelMenu(); }
+      { const vorige = st.oef; st.toestand = +p[1]; st.oef = +p[2] || st.oef;
+        if (st.oef !== vorige) {
+          spel.ramen.laag = null;
+          const hoort = SPELLEN[inst.spel] ? SPELLEN[inst.spel].oef : 0;     // 0 = past bij elke oefening
+          if (spelOpen && hoort && hoort !== st.oef) sluitSpel();         // spel past niet meer: terug naar de spellen van deze oefening
+          else if (spelOpen) spelScore();
+        }
+        tekenSpelMenu(); }
       if (st.toestand === 2 || st.toestand === 0) { st.herhLive = 0; spelNieuweRonde(); }
       if (st.toestand >= 1 && st.toestand <= 3 && st.fout) { st.fout = null; tekenFout(); }   // nieuwe baseline: fout opgelost
       if (st.toestand === 5) spelKlaar();
@@ -923,8 +936,9 @@ function tekenLive() {
   let status;
   if (!verbonden) status = t('Verbind eerst met je Rewin (knop rechtsboven).');
   else if (st.toestand === null || st.toestand === undefined) status = t('Verbonden. Wacht op je Rewin…');
-  else status = `${t('Oefening')} ${st.oef} · ${t(TOESTAND_TEKST[st.toestand] || '')}`;
+  else status = t(TOESTAND_TEKST[st.toestand] || '');
   $('liveStatus').textContent = status;
+  zetOefKaart('liveOefBadge', 'liveOefNaam', 'liveOefUitleg');
 
   const tip = st.toestand === 6 && st.fout ? { soort: 'fout', tekst: t('⚠️ Foutcode F{c}', { c: st.fout.code }) + ' – ' + foutUitleg(st.fout), klein: t(FOUT_ACTIE) }
     : st.toestand === 3 ? tipVoor(l) : { soort: 'info', tekst: st.toestand === 5 ? t('Klaar! Mooi gedaan. 🎉') : t('Hier zie je hoe je hand beweegt zodra je begint.'), klein: '' };
@@ -1165,7 +1179,8 @@ function spelScore() {
   const eenheid = { slot: ' 🪙', dier: '% 💖', lift: ' ⭐', cocktail: ' ⭐' }[sp] || ' ✨';
   $('spelBeste').textContent = `${t('Record')}: ${inst.beste[sp] || 0}${eenheid}`;
   $('spelUitleg').textContent = t(SPELLEN[sp].uitleg);
-  $('spelTitel').textContent = inst.spel === 'auto' ? t('Verrassing: {s}', { s: t(SPEL_INFO[sp].naam) }) : t(SPEL_INFO[sp].naam);
+  $('spelTitel').textContent = (inst.spel === 'auto' ? t('Verrassing: {s}', { s: t(SPEL_INFO[sp].naam) }) : t(SPEL_INFO[sp].naam)) +
+    (huidigeOef() ? ' · ' + t('Oefening') + ' ' + huidigeOef() : '');
 }
 
 // ---Gedeelde tekenhulpjes -------------------------------------------------------------
@@ -1226,6 +1241,16 @@ const SPEL_INFO = {
 const OEF_UITLEG = { 1: 'Arm optillen met je duim omhoog', 2: 'Arm optillen met je handpalm naar beneden', 3: 'Hand draaien: van duim omhoog naar plat' };
 let spelOpen = false, menuSig = '';
 
+// Huidige oefening van Rewin (0 = onbekend / niet verbonden)
+const huidigeOef = () => ((st.verbonden || st.demoActief) && st.oef ? st.oef : 0);
+function zetOefKaart(badgeId, naamId, uitlegId) {
+  const oef = huidigeOef();
+  $(badgeId).textContent = oef || '?';
+  $(badgeId).style.background = oef ? `var(--oef${oef})` : 'var(--zacht)';
+  $(naamId).textContent = oef ? t('Oefening') + ' ' + oef : t('Nog niet verbonden');
+  $(uitlegId).textContent = oef ? t(OEF_UITLEG[oef]) : t('Verbind je Rewin, of kies hieronder een spel.');
+}
+
 function tegel(key, label, anders) {
   const i = SPEL_INFO[key];
   return `<button class="app${anders ? ' anders' : ''}" data-spel="${key}"><div class="ico" style="--a:${i.a};--b:${i.b}">${i.icoon}</div>` +
@@ -1233,20 +1258,16 @@ function tegel(key, label, anders) {
 }
 
 function tekenSpelMenu() {
-  const verbonden = st.verbonden || st.demoActief;
-  const oef = verbonden && st.oef ? st.oef : 0;
+  const oef = huidigeOef();
   const sig = `${oef}|${inst.taal}`;
   if (sig === menuSig) return;               // niets veranderd: niet opnieuw opbouwen (anders mis je een tik)
   menuSig = sig;
-  $('mOefBadge').textContent = oef || '?';
-  $('mOefBadge').style.background = oef ? `var(--oef${oef})` : 'var(--zacht)';
-  $('mOef').textContent = oef ? t('Oefening') + ' ' + oef : t('Nog niet verbonden');
-  $('mOefUitleg').textContent = oef ? t(OEF_UITLEG[oef]) : t('Verbind je Rewin, of kies hieronder een spel.');
+  zetOefKaart('mOefBadge', 'mOef', 'mOefUitleg');
   const groep = (titel, tegels) => `<div class="groeptitel">${titel}</div><div class="appgrid">${tegels}</div>`;
   let html = '';
   if (oef) {
+    // alleen de spellen die bij deze oefening horen (plus verrassing en ballon, die passen altijd)
     html += groep(t('Spellen voor oefening {n}', { n: oef }), AUTO_SPELLEN[oef].map(k => tegel(k)).join('') + tegel('auto') + tegel('ballon'));
-    html += groep(t('Andere oefeningen'), [1, 2, 3].filter(o => o !== oef).flatMap(o => AUTO_SPELLEN[o].map(k => tegel(k, t('oef {n}', { n: o }), true))).join(''));
   } else {
     [1, 2, 3].forEach(o => { html += groep(`${t('Oefening')} ${o} · ${t(OEF_UITLEG[o])}`, AUTO_SPELLEN[o].map(k => tegel(k)).join('')); });
     html += groep(t('Voor elke oefening'), tegel('ballon') + tegel('auto'));
