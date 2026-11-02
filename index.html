@@ -124,6 +124,12 @@ nav button.actief{color:var(--blauw);font-weight:600}
 .foutbanner b{display:block;color:var(--rood);font-size:18px;margin-bottom:4px}
 .foutbanner p{margin:4px 0}
 .foutbanner .knop{background:var(--rood);margin-top:10px}
+.oefanim{position:fixed;inset:0;z-index:30;background:rgba(22,35,58,.5);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;transition:opacity .25s}
+.oefanim.aan{opacity:1}
+.oefanim.weg{opacity:0}
+.oefanim-kaart{background:var(--kaart);border-radius:22px;padding:18px;width:min(100%,420px);box-shadow:0 10px 40px rgba(0,0,0,.25);transform:scale(.92);transition:transform .3s}
+.oefanim.aan .oefanim-kaart{transform:scale(1)}
+.oefanim svg{margin:10px 0 6px;background:var(--bg);border-radius:14px}
 .verborgen{display:none!important}
 </style>
 </head>
@@ -272,6 +278,14 @@ nav button.actief{color:var(--blauw);font-weight:600}
   </section>
 </main>
 
+<div id="oefAnim" class="oefanim verborgen" role="dialog">
+  <div class="oefanim-kaart">
+    <div class="rij"><div class="badge groot-badge" id="oaBadge">1</div><div><div class="oefnaam" id="oaNaam"></div><div class="zacht klein" id="oaUitleg"></div></div></div>
+    <svg id="oaSvg" viewBox="0 0 320 170" width="100%"></svg>
+    <div class="zacht klein" style="text-align:center" data-t>Tik om verder te gaan</div>
+  </div>
+</div>
+
 <nav>
   <button data-tab="overzicht" class="actief"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span data-t>Overzicht</span></button>
   <button data-tab="live"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg><span data-t>Live</span></button>
@@ -307,7 +321,7 @@ const EN = {
   'keer geoefend': 'sessions', 'netjes uitgevoerd': 'done neatly', 'dagen op rij': 'days in a row',
   'Laatste oefeningen': 'Recent sessions', 'Pols op / neer': 'Wrist up / down', 'Pols opzij': 'Wrist sideways',
   'herhaling': 'repetition', 'hoek': 'angle', 'tempo °/s': 'speed °/s',
-  'Je bent nu bij': 'You are now doing', 'Alle spellen': 'All games', 'Taal van de app': 'App language',
+  'Je bent nu bij': 'You are now doing', 'Tik om verder te gaan': 'Tap to continue', 'Alle spellen': 'All games', 'Taal van de app': 'App language',
   'Verbinding': 'Connection', 'Batterij': 'Battery', 'Helderheid LED-ring': 'LED ring brightness',
   'Trilmotor': 'Vibration motor', 'aan': 'on', 'Trilling testen': 'Test vibration', 'uit': 'off',
   'Zet de trilmotor pas aan als hij via een transistor en diode is aangesloten. Anders kunnen de sensoren opnieuw opstarten.':
@@ -482,6 +496,11 @@ const TOESTAND_TEKST = {
 // =====================================================================================
 //  BERICHTEN VAN REWIN VERWERKEN  (zie bluetooth.ino voor het formaat)
 // =====================================================================================
+// Laat de animatie zien als Rewin (voor het eerst, of na het wisselen) een oefening doorgeeft
+function meldOefening() {
+  if (st.oef && st.oef !== st.oefGetoond) { st.oefGetoond = st.oef; toonOefAnim(st.oef); }
+}
+
 function verwerk(regel) {
   regel = regel.trim();
   if (!regel) return;
@@ -490,7 +509,7 @@ function verwerk(regel) {
   switch (p[0]) {
     case 'I':
       st.naam = p[1]; st.oef = +p[3] || st.oef; st.opstartId = p[4] || st.opstartId;
-      tekenSpelMenu();
+      tekenSpelMenu(); meldOefening();
       break;
     case 'T':
       { const vorige = st.oef; st.toestand = +p[1]; st.oef = +p[2] || st.oef;
@@ -500,7 +519,7 @@ function verwerk(regel) {
           if (spelOpen && hoort && hoort !== st.oef) sluitSpel();         // spel past niet meer: terug naar de spellen van deze oefening
           else if (spelOpen) spelScore();
         }
-        tekenSpelMenu(); }
+        tekenSpelMenu(); meldOefening(); }
       if (st.toestand === 2 || st.toestand === 0) { st.herhLive = 0; spelNieuweRonde(); }
       if (st.toestand >= 1 && st.toestand <= 3 && st.fout) { st.fout = null; tekenFout(); }   // nieuwe baseline: fout opgelost
       if (st.toestand === 5) spelKlaar();
@@ -608,7 +627,7 @@ async function koppel() {
 
 let herverbindPogingen = 0;
 function losgekoppeld() {
-  st.verbonden = false; rxKar = null; st.toestand = null; st.live = null;
+  st.verbonden = false; rxKar = null; st.toestand = null; st.live = null; st.oefGetoond = null;
   tekenVerbinding();
   if (handmatigLos || !apparaat) return;
   // automatisch opnieuw proberen (bijv. even buiten bereik)
@@ -930,6 +949,119 @@ function lijn(x1, y1, x2, y2, kleur, dikte, extra = '') {
   return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${kleur}" stroke-width="${dikte}" stroke-linecap="round" ${extra}/>`;
 }
 
+// =====================================================================================
+//  ARM EN HAND TEKENEN (live-scherm en de animatie bij het wisselen van oefening)
+//   oefening 1: zijaanzicht, vuist met de duim omhoog
+//   oefening 2: zijaanzicht, platte hand met de handpalm naar beneden
+//   oefening 3: vooraanzicht, hand draait van duim omhoog naar plat
+//  SVG van 320 x 170. hoek = beweging [graden], pitch = buigen van de pols (alleen oef. 1 en 2).
+// =====================================================================================
+const ARM_HUID = '#e9b48c', ARM_HUID_RAND = '#c98d66', MOUW = '#5b8def', MOUW_DONKER = '#4a78d0';
+
+// Hand in eigen assenstelsel: (0,0) = pols, +x = richting van de vingers, -y = 'boven' de hand
+function vuistMetDuim(vul, rand, dikte) {
+  return `<rect x="-3" y="-15" width="46" height="31" rx="13" fill="${vul}" stroke="${rand}" stroke-width="${dikte}"/>` +
+    // gekrulde vingers aan de voorkant
+    [-8, -1, 6].map(y => `<path d="M30 ${y} q9 0 10 3" fill="none" stroke="${rand}" stroke-width="1.4" stroke-linecap="round"/>`).join('') +
+    // duim omhoog
+    `<rect x="9" y="-42" width="15" height="32" rx="7.5" fill="${vul}" stroke="${rand}" stroke-width="${dikte}"/>` +
+    `<ellipse cx="16.5" cy="-36" rx="4.5" ry="3.5" fill="#f6dccb" stroke="${rand}" stroke-width=".8"/>`;
+}
+function plateHand(vul, rand, dikte) {
+  return `<path d="M-3 -9 L38 -8 Q52 -7 66 -4 Q72 -2 70 2 Q66 5 52 5 L38 6 L-3 9 Z" fill="${vul}" stroke="${rand}" stroke-width="${dikte}" stroke-linejoin="round"/>` +
+    // duim, iets lager langs de zijkant
+    `<path d="M6 7 Q18 13 30 11 Q34 9 30 7" fill="${vul}" stroke="${rand}" stroke-width="${dikte}" stroke-linejoin="round"/>` +
+    // vingers
+    [-3, 1].map(y => `<path d="M46 ${y} L66 ${y + .6}" stroke="${rand}" stroke-width="1" opacity=".7"/>`).join('') +
+    `<path d="M64 -4 q4 1 4 4" fill="none" stroke="#f6dccb" stroke-width="2"/>`;
+}
+
+function armTekening(oef, hoek, pitch, doel, opt = {}) {
+  const fout = !!opt.fout, labels = opt.labels !== false;
+  const vul = fout ? '#f4b0a6' : ARM_HUID, rand = fout ? 'var(--rood)' : ARM_HUID_RAND, dikte = fout ? 2.5 : 1.5;
+  const goed = 'var(--groen)';
+  let a = '';
+  if (oef !== 3) {
+    const ex = 70, ey = 140, len = 112;
+    // tafel
+    a += `<rect x="0" y="${ey + 10}" width="320" height="30" fill="#e2c49c"/><rect x="0" y="${ey + 10}" width="320" height="4" fill="#c99f6e"/>`;
+    // doelhoek
+    if (labels) {
+      const dl = len + 66, dx = ex + dl * Math.cos(rad(doel)), dy = ey - dl * Math.sin(rad(doel));
+      a += lijn(ex, ey, dx, dy, 'var(--blauw)', 1.5, 'stroke-dasharray="5 5" opacity=".6"');
+      a += `<text x="${dx + 8}" y="${dy + 4}" font-size="11" fill="var(--blauw)">${t('doel')} ${doel}°</text>`;
+      const r0 = 40;
+      a += `<path d="M${ex + r0} ${ey} A${r0} ${r0} 0 0 0 ${ex + r0 * Math.cos(rad(Math.min(hoek, 100)))} ${ey - r0 * Math.sin(rad(Math.min(hoek, 100)))}" fill="none" stroke="${hoek >= doel * .94 ? goed : 'var(--blauw)'}" stroke-width="5" stroke-linecap="round" opacity=".55"/>`;
+    }
+    // bovenarm (in de mouw) van de elleboog naar achteren omhoog
+    a += lijn(ex, ey, ex - 40, ey - 80, MOUW_DONKER, 20);
+    // onderarm: smaller naar de pols toe
+    const ca = Math.cos(rad(hoek)), sa = Math.sin(rad(hoek));
+    const wx = ex + len * ca, wy = ey - len * sa;
+    const nx = sa, ny = ca;                                     // loodrecht op de onderarm
+    a += `<path d="M${ex + 12 * nx} ${ey + 12 * ny} L${wx + 8.5 * nx} ${wy + 8.5 * ny} L${wx - 8.5 * nx} ${wy - 8.5 * ny} L${ex - 12 * nx} ${ey - 12 * ny} Z" fill="${ARM_HUID}" stroke="${ARM_HUID_RAND}" stroke-width="1.2" stroke-linejoin="round"/>`;
+    // mouw over de elleboog
+    a += `<circle cx="${ex}" cy="${ey}" r="14" fill="${MOUW}"/>`;
+    a += `<path d="M${ex + 13 * nx} ${ey + 13 * ny} L${ex + 40 * ca + 12.5 * nx} ${ey - 40 * sa + 12.5 * ny} L${ex + 40 * ca - 12.5 * nx} ${ey - 40 * sa - 12.5 * ny} L${ex - 13 * nx} ${ey - 13 * ny} Z" fill="${MOUW}"/>`;
+    // spookhand: zo hoort de hand (recht in het verlengde van de onderarm)
+    const vorm = oef === 1 ? vuistMetDuim : plateHand;
+    if (labels && Math.abs(pitch) > 1) a += `<g transform="translate(${wx} ${wy}) rotate(${-hoek})" opacity=".35">${vorm('none', 'var(--zacht)', 1.5).replace(/stroke-width="1\.5"/g, 'stroke-width="1.5" stroke-dasharray="4 3"')}</g>`;
+    // de echte hand
+    a += `<g transform="translate(${wx} ${wy}) rotate(${-(hoek + pitch)})">${vorm(vul, rand, dikte)}</g>`;
+    if (labels) a += `<text x="306" y="24" text-anchor="end" font-size="22" font-weight="700" fill="var(--inkt)">${hoek.toFixed(0)}°</text>`;
+  } else {
+    // vooraanzicht: je kijkt tegen de vingertoppen aan, de onderarm ligt naar achteren op tafel
+    const cx = 160, cy = 92, r = 64;
+    a += `<rect x="0" y="152" width="320" height="18" fill="#e2c49c"/><rect x="0" y="152" width="320" height="3" fill="#c99f6e"/>`;
+    if (labels) {
+      a += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--lijn)" stroke-width="2"/>`;
+      a += `<path d="M${cx} ${cy - r} A${r} ${r} 0 0 1 ${cx + r * Math.sin(rad(Math.min(hoek, 120)))} ${cy - r * Math.cos(rad(Math.min(hoek, 120)))}" fill="none" stroke="${hoek >= doel * .94 ? goed : 'var(--blauw)'}" stroke-width="7" stroke-linecap="round" opacity=".6"/>`;
+      a += lijn(cx, cy, cx + (r + 14) * Math.sin(rad(doel)), cy - (r + 14) * Math.cos(rad(doel)), 'var(--blauw)', 1.5, 'stroke-dasharray="5 5" opacity=".6"');
+      a += `<text x="${cx + r + 18}" y="${cy + 4}" font-size="11" fill="var(--blauw)">${t('doel')} ${doel}°</text>`;
+      a += `<text x="${cx - r - 12}" y="${cy - r + 6}" text-anchor="end" font-size="11" fill="var(--zacht)">${t('duim omhoog')}</text>`;
+    }
+    a += `<circle cx="${cx}" cy="${cy}" r="27" fill="${MOUW}"/>`;                  // onderarm in de mouw (van voren)
+    a += `<g transform="translate(${cx} ${cy}) rotate(${hoek})">` +
+      `<rect x="-13" y="-34" width="26" height="72" rx="13" fill="${vul}" stroke="${rand}" stroke-width="${dikte}"/>` +
+      [-18, -5, 8, 21].map(y => `<path d="M-9 ${y} q9 -3 18 0" fill="none" stroke="${rand}" stroke-width="1.3" stroke-linecap="round"/>`).join('') +
+      `<rect x="-3" y="-60" width="15" height="32" rx="7.5" fill="${vul}" stroke="${rand}" stroke-width="${dikte}"/>` +
+      `<ellipse cx="4.5" cy="-54" rx="4.5" ry="3.5" fill="#f6dccb" stroke="${rand}" stroke-width=".8"/></g>`;
+    if (labels) a += `<text x="306" y="24" text-anchor="end" font-size="22" font-weight="700" fill="var(--inkt)">${hoek.toFixed(0)}°</text>`;
+  }
+  return a;
+}
+
+// ---Korte animatie bij het wisselen van oefening ----------------------------------------
+let oefAnimStart = 0, oefAnimOef = 0, oefAnimFrame = null;
+const OEF_ANIM_DUUR = 3600;
+function toonOefAnim(oef) {
+  if (!oef || !OEF_UITLEG[oef]) return;
+  oefAnimOef = oef; oefAnimStart = performance.now();
+  $('oaBadge').textContent = oef;
+  $('oaBadge').style.background = `var(--oef${oef})`;
+  $('oaNaam').textContent = t('Oefening') + ' ' + oef;
+  $('oaUitleg').textContent = t(OEF_UITLEG[oef]);
+  const el = $('oefAnim');
+  el.classList.remove('verborgen', 'weg'); void el.offsetWidth; el.classList.add('aan');
+  if (!oefAnimFrame) oefAnimFrame = requestAnimationFrame(oefAnimStap);
+}
+function oefAnimStap(nu) {
+  const tijd = nu - oefAnimStart;
+  if (tijd > OEF_ANIM_DUUR) { verbergOefAnim(); return; }
+  const doel = oefAnimOef === 3 ? 80 : 45;
+  const fase = (tijd / 1700) * 2 * Math.PI;                        // twee keer op en neer
+  const hoek = doel * (.5 - .5 * Math.cos(fase));
+  $('oaSvg').innerHTML = armTekening(oefAnimOef, hoek, 0, doel, { labels: false });
+  oefAnimFrame = requestAnimationFrame(oefAnimStap);
+}
+function verbergOefAnim() {
+  if (oefAnimFrame) cancelAnimationFrame(oefAnimFrame);
+  oefAnimFrame = null;
+  const el = $('oefAnim');
+  el.classList.add('weg');
+  setTimeout(() => { if (el.classList.contains('weg')) el.classList.add('verborgen'); }, 250);
+}
+
 function tekenLive() {
   const l = st.live && performance.now() - st.liveTijd < 3000 ? st.live : null;
   const verbonden = st.verbonden || st.demoActief;
@@ -954,41 +1086,9 @@ function tekenLive() {
   const huid = '#e9b48c', fout = 'var(--rood)', goed = 'var(--groen)';
   const pitchFout = Math.abs(pitch) > GRENS, yawFout = Math.abs(yaw) > GRENS;
 
-  // ---Paneel A: de beweging---
-  let a = '';
-  if (oef !== 3) {
-    $('paneelATitel').textContent = t('Je arm (zijaanzicht)');
-    const ex = 46, ey = 148, len = 118, hl = 48;
-    a += lijn(10, ey + 8, 310, ey + 8, 'var(--lijn)', 3);
-    // doelhoek
-    const dl = len + hl + 4, dx = ex + dl * Math.cos(rad(doel)), dy = ey - dl * Math.sin(rad(doel));
-    a += lijn(ex, ey, dx, dy, 'var(--blauw)', 1.5, 'stroke-dasharray="5 5" opacity=".6"');
-    a += `<text x="${dx + 8}" y="${dy + 4}" font-size="11" fill="var(--blauw)">${t('doel')} ${doel}°</text>`;
-    const r0 = 46;
-    a += `<path d="M${ex + r0} ${ey} A${r0} ${r0} 0 0 0 ${ex + r0 * Math.cos(rad(Math.min(hoek, 100)))} ${ey - r0 * Math.sin(rad(Math.min(hoek, 100)))}" fill="none" stroke="${hoek >= doel * .94 ? goed : 'var(--blauw)'}" stroke-width="5" stroke-linecap="round" opacity=".55"/>`;
-    const wx = ex + len * Math.cos(rad(hoek)), wy = ey - len * Math.sin(rad(hoek));
-    // spookhand (zo hoort het) en echte hand
-    a += lijn(wx, wy, wx + hl * Math.cos(rad(hoek)), wy - hl * Math.sin(rad(hoek)), 'var(--zacht)', 14, 'opacity=".22"');
-    a += lijn(ex, ey, wx, wy, huid, 20);
-    const ha = hoek + pitch;
-    a += lijn(wx, wy, wx + hl * Math.cos(rad(ha)), wy - hl * Math.sin(rad(ha)), pitchFout ? fout : huid, 15);
-    a += `<circle cx="${wx}" cy="${wy}" r="6" fill="${pitchFout ? fout : goed}"/>`;
-    a += `<circle cx="${ex}" cy="${ey}" r="9" fill="${huid}"/>`;
-    a += `<text x="300" y="24" text-anchor="end" font-size="22" font-weight="700" fill="var(--inkt)">${hoek.toFixed(0)}°</text>`;
-  } else {
-    $('paneelATitel').textContent = t('Je hand draaien (vooraanzicht)');
-    const cx = 160, cy = 92, r = 64;
-    a += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--lijn)" stroke-width="2"/>`;
-    a += `<path d="M${cx} ${cy - r} A${r} ${r} 0 0 1 ${cx + r * Math.sin(rad(Math.min(hoek, 120)))} ${cy - r * Math.cos(rad(Math.min(hoek, 120)))}" fill="none" stroke="${hoek >= doel * .94 ? goed : 'var(--blauw)'}" stroke-width="7" stroke-linecap="round" opacity=".6"/>`;
-    a += lijn(cx, cy, cx + (r + 14) * Math.sin(rad(doel)), cy - (r + 14) * Math.cos(rad(doel)), 'var(--blauw)', 1.5, 'stroke-dasharray="5 5" opacity=".6"');
-    a += `<text x="${cx + r + 18}" y="${cy + 4}" font-size="11" fill="var(--blauw)">${t('doel')} ${doel}°</text>`;
-    const s = Math.sin(rad(hoek)), c = Math.cos(rad(hoek));
-    a += lijn(cx - 44 * s, cy + 44 * c, cx + 44 * s, cy - 44 * c, huid, 24);
-    a += `<circle cx="${cx + 52 * s - 10 * c}" cy="${cy - 52 * c - 10 * s}" r="8" fill="${huid}"/>`;
-    a += `<text x="${cx - r - 12}" y="${cy - r + 6}" text-anchor="end" font-size="11" fill="var(--zacht)">${t('duim omhoog')}</text>`;
-    a += `<text x="300" y="24" text-anchor="end" font-size="22" font-weight="700" fill="var(--inkt)">${hoek.toFixed(0)}°</text>`;
-  }
-  $('paneelA').innerHTML = a;
+  // ---Paneel A: de beweging, met een echte arm en hand---
+  $('paneelATitel').textContent = oef !== 3 ? t('Je arm (zijaanzicht)') : t('Je hand draaien (vooraanzicht)');
+  $('paneelA').innerHTML = armTekening(oef, hoek, oef !== 3 ? pitch : 0, doel, { fout: oef !== 3 && pitchFout });
 
   // ---Paneel B en C: de pols (hoek x2 getekend, zodat kleine afwijkingen zichtbaar zijn)---
   const pols = (graden, isFout, labelPlus, labelMin, duim) => {
@@ -2322,6 +2422,7 @@ function tekenAlles() { tekenVerbinding(); tekenOverzicht(); tekenLive(); spelSc
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => kiesTab(b.dataset.tab)));
 $('spelTerug').addEventListener('click', sluitSpel);
 $('foutOk').addEventListener('click', () => { st.foutGezien = true; tekenFout(); });
+$('oefAnim').addEventListener('click', verbergOefAnim);
 $('verbindKnop').addEventListener('click', () => st.demoActief ? kiesTab('instellingen') : (st.verbonden ? kiesTab('instellingen') : verbind()));
 $('iVerbindKnop').addEventListener('click', () => st.verbonden ? verbreek() : verbind());
 $('weekTerug').addEventListener('click', () => { weekVerschuiving--; tekenOverzicht(); });

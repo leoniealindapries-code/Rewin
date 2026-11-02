@@ -3,7 +3,7 @@
 //  - geeft een herinnering als je vandaag nog niet geoefend hebt (periodieke achtergrond-sync;
 //    Chrome bepaalt zelf hoe vaak dat mag, dus het is niet op de minuut precies)
 
-const CACHE = 'rewin-v8';
+const CACHE = 'rewin-v9';
 const BESTANDEN = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 const STATUS_URL = new URL('status.json', self.registration.scope).href;
 
